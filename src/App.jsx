@@ -20,9 +20,11 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import ClientDashboardPage from "./pages/client/ClientDashboardPage";
+import WalletPage from "./pages/client/WalletPage";
 import ManagerDashboardPage from "./pages/manager/ManagerDashboardPage";
 import ManagerWorkstationsPage from "./pages/manager/ManagerWorkstationsPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminClientsPage from "./pages/admin/AdminClientsPage";
 import AdminLocationsPage from "./pages/admin/AdminLocationsPage";
 import AdminWorkstationsPage from "./pages/admin/AdminWorkstationsPage";
 
@@ -54,6 +56,7 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={[ROLES.CLIENT]} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/client/dashboard" element={<ClientDashboardPage />} />
+          <Route path="/client/wallet" element={<WalletPage />} />
           <Route path="/client/book" element={<ComingSoon title="Book a workstation" phase="Phase 3 — Booking" />} />
           <Route path="/client/bookings" element={<ComingSoon title="My bookings" phase="Phase 3 — Booking" />} />
           <Route path="/client/gift-a-seat" element={<ComingSoon title="Gift a seat" phase="Phase 3 — Booking" />} />
@@ -80,7 +83,7 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/clients" element={<ComingSoon title="Clients" phase="Phase 1 — Foundation" />} />
+          <Route path="/admin/clients" element={<AdminClientsPage />} />
           <Route path="/admin/approvals" element={<ComingSoon title="Client approvals" phase="Phase 5 — QR" />} />
           <Route path="/admin/workstations" element={<AdminWorkstationsPage />} />
           <Route path="/admin/locations" element={<AdminLocationsPage />} />

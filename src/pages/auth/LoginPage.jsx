@@ -18,11 +18,15 @@ export default function LoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      const user = await login({ email });
+      const user = await login({ email, password });
       const redirectTo = location.state?.from?.pathname || dashboardPathForRole(user.role);
       navigate(redirectTo, { replace: true });
-    } catch {
-      setError("Couldn't log you in. Check your details and try again.");
+    } catch (err) {
+      setError(
+        err?.code === "NO_ACCOUNT"
+          ? "We couldn't find an account with that email. Create one below."
+          : "Couldn't log you in. Check your details and try again."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -74,12 +78,6 @@ export default function LoginPage() {
         <Link to="/register" className="font-medium text-[var(--color-accent)] hover:underline">
           Create one
         </Link>
-      </p>
-
-      <p className="mt-4 rounded-lg bg-slate-50 p-3 text-center text-xs text-slate-400">
-        Demo mode: any email/password logs you in as a Client. Use{" "}
-        <span className="font-mono-tight">manager@demo.com</span> or{" "}
-        <span className="font-mono-tight">admin@demo.com</span> to preview those dashboards.
       </p>
     </>
   );

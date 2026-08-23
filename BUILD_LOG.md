@@ -75,20 +75,112 @@ src/
 │   ├── layout/         Navbar, Footer, Sidebar, Topbar, PublicLayout, AuthLayout, DashboardLayout
 │   ├── location/       LocationFormModal
 │   ├── workstation/     WorkstationFormModal, WorkstationCard
-│   ├── client/ manager/ admin/ booking/ qr/ approval/ charts/   (empty — future phases)
+│   ├── client/          DepositModal
+│   ├── manager/ admin/ booking/ qr/ approval/ charts/   (empty — future phases)
 ├── pages/
 │   ├── public/          Landing, About, Workstations, Locations, Pricing, HowItWorks, Contact
 │   ├── auth/             Login, Register, ForgotPassword, ResetPassword
-│   ├── client/           ClientDashboardPage
+│   ├── client/           ClientDashboardPage, WalletPage
 │   ├── manager/          ManagerDashboardPage, ManagerWorkstationsPage
-│   └── admin/            AdminDashboardPage, AdminLocationsPage, AdminWorkstationsPage
-├── context/              AuthContext.jsx, CatalogContext.jsx
-├── services/             api.js, authService.js, locationService.js, workstationService.js
+│   └── admin/            AdminDashboardPage, AdminClientsPage, AdminLocationsPage, AdminWorkstationsPage
+├── context/              AuthContext.jsx, UsersContext.jsx, CatalogContext.jsx, WalletContext.jsx
+├── services/             api.js, authService.js, locationService.js, workstationService.js, walletService.js
 ├── utils/                constants.js, navConfig.js, roleRouting.js
 └── routes/               ProtectedRoute.jsx
 ```
 
 ## Build Log
+
+### 2026-08-23 — Fix: removed exposed role picker; Admin can now promote Clients to Manager
+
+**Final login/role system is pending confirmation from the backend team —
+everything here is a mocked stand-in, not a design decision.**
+
+- [x] `UsersContext` — new mock account directory (separate from
+      `AuthContext`, which only tracks who's logged in on this device).
+      Seeded with 3 sample Clients and one bootstrap Admin account not
+      surfaced anywhere in the UI.
+- [x] `AuthContext.login` — no longer accepts a role. It looks up the email
+      in `UsersContext`; unknown emails now fail with a clear "no account
+      found, try registering" message instead of silently logging in.
+- [x] `AuthContext.register` — always creates a Client via
+      `UsersContext.registerClient`. There is no public path to a Manager
+      or Admin account.
+- [x] `LoginPage.jsx` — role picker removed entirely; back to a plain
+      email/password form.
+- [x] `AdminClientsPage.jsx` (`/admin/clients`, previously `ComingSoon`) —
+      real page: search clients, "Make Manager" / "Revert to Client"
+      per row. This is the only way a Manager account comes to exist.
+- [x] `main.jsx` — `UsersProvider` now wraps `AuthProvider` (added as the
+      outermost provider, since Auth depends on it).
+- [x] `README.md` — documented the seeded admin credential for development
+      use, explicitly flagged as not part of the product UI.
+- [x] Production build + lint verified clean (0 errors; 7 pre-existing
+      style warnings, same category as before).
+
+**Notes:** This directly reverses the previous session's role-picker
+convenience feature, at the person's request — exposing a role switch on
+login, even for demo purposes, risked normalizing "log in as whatever role
+you want" as a pattern, which doesn't reflect how the real system should
+work. The one seeded Admin account is a deliberate exception (a real
+backend needs a root admin created out-of-band too) but is kept out of any
+UI copy, hints, or placeholder text.
+
+---
+
+### 2026-08-23 — Feature: Client Wallet (cash deposits, no expiry) ✅
+
+Scope: matches Revision 5 of the product documentation — reintroduces a
+wallet, but as a plain cash balance, not the hours/subscription model
+removed in Revision 4.
+
+- [x] `WalletContext` — new per-client cash balance, persisted to
+      localStorage keyed by user id (mocked; survives refresh, resets if
+      you log in as a different demo user). Seeded with a sample deposit +
+      payment so the page isn't empty on first login.
+- [x] `walletService.js` — placeholder service for the future backend;
+      matches the doc's rule that a deposit must be verified server-side
+      with the payment provider before the balance is credited.
+- [x] `DepositModal.jsx` — quick-amount buttons (₦5k/10k/20k/50k) or a
+      custom amount; explicitly states the balance never expires.
+- [x] `WalletPage.jsx` (`/client/wallet`) — balance hero, "Add funds"
+      button, full transaction history (deposits green, payments red).
+- [x] `navConfig.js` — "My Wallet" added back to the Client sidebar.
+- [x] `ClientDashboardPage.jsx` — "Total spent this month" stat replaced
+      with a live "Wallet balance" stat, linking through to the Wallet page.
+- [x] `main.jsx` — `WalletProvider` wired inside `AuthProvider` (wallet is
+      per-user, so it needs `useAuth` to know who's logged in).
+- [x] Production build + lint verified clean (0 errors; 6 pre-existing
+      style warnings, same category as before — two more from `WalletContext`'s
+      load/persist effects, same pattern as `AuthContext`).
+
+**Notes:** This is deliberately *not* a return to the old Hour Wallet. No
+plans, no bundles, no discount for depositing more, no expiry. The wallet
+is just an optional payment method sitting alongside direct payment — both
+result in the same flat per-day booking total. `pay()` is exposed on
+`WalletContext` for the future Booking flow (Phase 3) to debit against, but
+isn't wired to anything yet since there's no booking checkout screen.
+Master documentation is now **Revision 5** — Section 13 renamed "Booking
+Payments and Client Wallet", with a new `WalletTransaction` entity in the
+data model and a new Wallet-deposit flow in Section 22.
+
+---
+
+### 2026-08-23 — Fix: explicit role picker replaces email-prefix convention
+
+- [x] `AuthContext.login` no longer infers role from the email address
+      (`manager@...` / `admin@...`). It now accepts an explicit `role`
+      parameter, defaulting to `CLIENT`.
+- [x] `LoginPage.jsx` — added a demo-only role picker (Client / Manager /
+      Admin) so any email can log in as any role, rather than requiring a
+      specific email prefix to reach the Manager/Admin dashboards.
+- [x] `README.md` — updated the mocked-auth note to match.
+
+**Notes:** This only affects the mocked demo login. Once the real backend
+exists, the role comes from the account record — the picker goes away
+entirely rather than needing to be adapted.
+
+---
 
 ### 2026-08-23 — Phase 2: Locations & Workstations ✅
 
@@ -228,10 +320,19 @@ Scope: Section 26 (Recommended Development Order), steps 1–8.
 
 Things that look real in the UI but are not yet wired to a backend:
 
-- **Auth** — `AuthContext` fakes login/register against `localStorage`.
-  `manager@…` → Manager, `admin@…` → Admin, anything else → Client.
-- **Dashboard numbers** — amounts spent, booking counts, revenue, etc. are
-  hardcoded sample data in each dashboard page.
+- **Auth** — `AuthContext` fakes login/register against `UsersContext` +
+  `localStorage`. Public login/register always produces a Client; Manager
+  accounts only exist if an Admin promotes one via **Admin → Clients**. See
+  `README.md` for the seeded development-only Admin credential (not
+  exposed anywhere in the product UI). **This entire system is a stand-in
+  pending the backend team's confirmation of the real login/role design.**
+- **Dashboard numbers** — booking counts, revenue, etc. are hardcoded
+  sample data in each dashboard page (Wallet balance is the exception —
+  see below, it's live).
+- **Wallet** — real balance and transaction history via `WalletContext`,
+  persisted to localStorage per user id (in-memory equivalent — resets if
+  you clear browser storage, not yet backed by a real payment provider or
+  database).
 - **Locations & workstations** — now real CRUD against `CatalogContext`
   (in-memory, resets on page refresh — not yet persisted to a backend).
 - **Bookings, sessions, QR passes, approvals** — no screens exist yet; sidebar

@@ -53,5 +53,13 @@ export const STATUS_STYLES = {
 };
 
 // Payment model: clients pay per day booked, at the workstation's flat
-// daily rate. No subscriptions, no hour wallet, no bulk/volume discount —
-// booking 1 day or 30 days costs the same rate per day.
+// daily rate. No subscriptions, no bulk/volume discount — booking 1 day or
+// 30 days costs the same rate per day. Clients may pay directly at checkout
+// or from their Wallet balance (see WalletContext) — the wallet is a plain
+// cash balance funded by deposits, never an hours/subscription bundle, and
+// the balance never expires.
+export const WALLET_TRANSACTION_TYPE = {
+  DEPOSIT: "DEPOSIT",
+  PAYMENT: "PAYMENT",
+  REFUND: "REFUND",
+};

@@ -25,12 +25,27 @@ placeholder labeled with the MVP phase that will build them out — see
 
 ## Mocked authentication
 
-There's no backend yet, so `AuthContext` fakes login/register against
-`localStorage`. To preview each dashboard without a real backend:
+**Final login/role system is pending confirmation from the backend team.**
+Everything below is a temporary stand-in so the frontend can be built and
+demoed in the meantime — see `src/context/UsersContext.jsx` for the full
+rationale.
 
-- Any email/password → **Client** (starts `UNVERIFIED`)
-- `manager@anything` → **Manager**
-- `admin@anything` → **Admin**
+There's no backend yet, so `AuthContext` fakes login/register against a
+mock account directory (`UsersContext`) + `localStorage`. Key rule: **the
+public login/register flow can only ever produce a Client account.** There
+is no role picker and no email-prefix trick. The only way a Manager account
+exists is an Admin promoting a Client via **Admin → Clients → Make
+Manager**.
+
+To preview each dashboard without a real backend:
+
+- Register a new account (or log in as `john@demo.com` — any password) to
+  see the Client experience.
+- To see the Admin dashboard during development, log in as
+  `admin@charis.dev` (any password) — this is a seeded bootstrap account,
+  not something surfaced anywhere in the product UI. Once logged in as
+  Admin, go to **Clients** and promote any Client to Manager to preview
+  that dashboard too.
 
 Swap the bodies of `login`/`register`/`logout` in
 `src/context/AuthContext.jsx` for real calls to `src/services/authService.js`

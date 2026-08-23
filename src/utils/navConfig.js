@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, CalendarPlus, ListChecks, Gift, Clock, Receipt, Bell, User,
+  LayoutDashboard, CalendarPlus, ListChecks, Gift, Clock, Receipt, Bell, User, Wallet,
   QrCode, UserCheck, ClipboardList, RefreshCcw, MonitorSmartphone,
   Users, MapPin, CreditCard, BarChart3, ShieldCheck, Settings, FileClock, UserCog,
 } from "lucide-react";
@@ -8,6 +8,7 @@ import { ROLES } from "./constants";
 export const NAV_CONFIG = {
   [ROLES.CLIENT]: [
     { to: "/client/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/client/wallet", label: "My Wallet", icon: Wallet },
     { to: "/client/book", label: "Book Workstation", icon: CalendarPlus },
     { to: "/client/bookings", label: "My Bookings", icon: ListChecks },
     { to: "/client/gift-a-seat", label: "Gift a Seat", icon: Gift },

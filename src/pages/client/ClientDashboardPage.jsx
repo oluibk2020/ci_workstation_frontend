@@ -4,6 +4,7 @@ import StatCard from "../../components/common/StatCard";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import { useAuth } from "../../context/AuthContext";
+import { useWallet } from "../../context/WalletContext";
 
 // Mock data — replace with bookingService/sessionService calls once the
 // backend is connected (see docs Sections 9, 12, 13).
@@ -25,6 +26,7 @@ const GIFTED_BOOKING = {
 
 export default function ClientDashboardPage() {
   const { user, verificationStatus } = useAuth();
+  const { balance } = useWallet();
 
   return (
     <div className="space-y-6">
@@ -45,7 +47,9 @@ export default function ClientDashboardPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total spent this month" value="₦40,000" icon={Wallet} tone="accent" />
+        <Link to="/client/wallet" className="block">
+          <StatCard label="Wallet balance" value={`₦${balance.toLocaleString()}`} icon={Wallet} tone="accent" />
+        </Link>
         <StatCard label="Upcoming bookings" value="2" icon={CalendarCheck} />
         <StatCard label="Active session" value="—" icon={Timer} />
       </div>
