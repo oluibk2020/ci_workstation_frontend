@@ -1,13 +1,14 @@
 import Eyebrow from "../../components/common/Eyebrow";
 
 const STEPS = [
-  { n: "01", title: "Create an account", desc: "Sign up in a couple of minutes. New accounts start as unverified — a manager or admin approves you the first time you check in." },
-  { n: "02", title: "Book a workstation", desc: "Pick a location and desk, then choose a single day, several days, or an open date range. You can book it for yourself or gift it to someone else." },
-  { n: "03", title: "Pay for your days", desc: "One flat rate per day at checkout — no subscription, no bundle, no discount for booking more days." },
-  { n: "04", title: "Get your QR pass", desc: "It's generated instantly. If you gifted the seat, the person you booked it for gets a pass that works just the same." },
-  { n: "05", title: "Arrive and check in", desc: "A manager scans your QR code. First-time unverified clients are approved on the spot before the session starts." },
-  { n: "06", title: "Work your session", desc: "Bring your own laptop, plug in, and get online. Sessions are tracked by the backend, not a browser timer." },
-  { n: "07", title: "Need to change your dates?", desc: "Bookings can't be cancelled, but you can reschedule — as long as it's more than 48 hours before your booking starts." },
+  { n: "01", title: "Create an account", desc: "Sign up in a couple of minutes. New accounts start unverified — submit a profile photo and ID document before your first visit, since first-time physical access requires verification to be complete first." },
+  { n: "02", title: "Fund your wallet", desc: "Top up online via Paystack anytime — no minimum, no plan, and the balance never expires. Every booking is paid from this balance; there's no separate card payment at checkout." },
+  { n: "03", title: "Book a workstation", desc: "Pick a branch and seat, then choose your days — a continuous run of business days, or specific days within a period. Book it for yourself, or for another existing (or newly invited) user." },
+  { n: "04", title: "Your wallet is debited", desc: "One flat rate per day, times the number of days booked — no discount for booking more, and no other payment method at this step." },
+  { n: "05", title: "Get your QR pass", desc: "Each account has one persistent personal QR — it's not generated per booking. If you booked for someone else, they check in with their own QR, which the backend matches against your booking for that day." },
+  { n: "06", title: "Arrive and check in", desc: "Staff scan your QR, the backend checks your account, verification status, and today's booking, then staff explicitly triggers check-in." },
+  { n: "07", title: "Work your session", desc: "Bring your own laptop, plug in, and get online. You're automatically checked out at the branch's closing time." },
+  { n: "08", title: "Need to change your dates?", desc: "Cancel any future, unused date anytime — you won't get cash back, but the value is credited to your wallet for a future booking. To move a date instead of cancelling it, use Reassign (up to 3 times a month)." },
 ];
 
 export default function HowItWorksPage() {

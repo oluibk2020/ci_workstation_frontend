@@ -17,7 +17,7 @@ import { useUsers } from "./UsersContext";
  * Role is never chosen at login. It comes from whatever UsersContext has
  * on file for that email — the public login/register flow can only ever
  * produce or return a CLIENT, unless an Admin has separately promoted that
- * account to Manager. This mirrors how the real backend will work once the
+ * account to Staff. This mirrors how the real backend will work once the
  * backend team confirms the login/role design — nothing here is final.
  */
 
@@ -70,7 +70,7 @@ export function AuthProvider({ children }) {
   const register = useCallback(
     async ({ name, email }) => {
       // TODO: replace with authService.register(...). Always creates a
-      // CLIENT — there is no public path to a Manager or Admin account.
+      // CLIENT — there is no public path to a Staff or Admin account.
       const record = registerClient({ name, email });
       const mockUser = { ...record };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(mockUser));

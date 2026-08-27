@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
 
       <div className="rounded-2xl border border-[var(--color-line)] bg-white p-6">
         <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Revenue (all locations)
+          Revenue (all branches)
         </p>
         <p className="mt-2 text-3xl font-extrabold text-[var(--color-primary)]">₦4,850,000</p>
       </div>

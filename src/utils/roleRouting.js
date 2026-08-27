@@ -3,7 +3,7 @@ import { ROLES } from "./constants";
 export function dashboardPathForRole(role) {
   switch (role) {
     case ROLES.MANAGER:
-      return "/manager/dashboard";
+      return "/staff/dashboard";
     case ROLES.ADMIN:
       return "/admin/dashboard";
     case ROLES.CLIENT:

@@ -11,7 +11,7 @@ export default function StatusStrip() {
       <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5">
         <span className="h-2 w-2 rounded-full bg-[var(--color-success)] status-dot" />
         <span className="font-mono-tight text-[11px] uppercase tracking-wider text-slate-400">
-          Sagamu Location — live status
+          Sagamu Branch — live status
         </span>
       </div>
       <div className="grid grid-cols-2 gap-px sm:grid-cols-4">

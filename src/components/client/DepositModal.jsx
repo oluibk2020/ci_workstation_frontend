@@ -17,8 +17,10 @@ export default function DepositModal({ open, onClose, onDeposit }) {
     const value = Number(amount);
     if (!value || value <= 0) return;
     setSubmitting(true);
-    // TODO: replace with a real payment provider checkout; only credit the
-    // wallet after the backend verifies payment succeeded (docs Section 22).
+    // TODO: replace with a real Paystack checkout; only credit the wallet
+    // after the backend verifies the payment with Paystack (backend spec
+    // §8.1). This is the only way to fund the wallet online — the wallet
+    // itself is the only way a booking gets paid for.
     await new Promise((resolve) => setTimeout(resolve, 400));
     onDeposit(value);
     setSubmitting(false);
@@ -27,7 +29,7 @@ export default function DepositModal({ open, onClose, onDeposit }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Add funds to your wallet">
+    <Modal open={open} onClose={onClose} title="Add funds via Paystack">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="text-sm font-medium text-slate-700">Quick amounts</label>

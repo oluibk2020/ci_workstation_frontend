@@ -14,12 +14,12 @@ export default function AboutPage() {
           that doesn't buckle under a video call.
         </p>
         <p>
-          Every location we run is built around three things: a reliable socket, a dedicated internet
+          Every branch we run is built around three things: a reliable socket, a dedicated internet
           line, and a door that locks. Bring your own laptop, book by the day, and check in with a QR
           code — the rest is just infrastructure, working quietly in the background.
         </p>
         <p>
-          We're currently operating in Sagamu and Lekki, with more locations planned as demand grows.
+          We're currently operating in Sagamu and Lekki, with more branches planned as demand grows.
         </p>
       </div>
     </div>

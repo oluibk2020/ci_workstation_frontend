@@ -10,7 +10,7 @@ import { useWallet } from "../../context/WalletContext";
 // backend is connected (see docs Sections 9, 12, 13).
 const UPCOMING_BOOKING = {
   code: "WS-04",
-  location: "Sagamu",
+  branch: "Sagamu",
   dates: "Aug 24 – Aug 26 (3 days)",
   bookedFor: "Self",
   total: "₦24,000",
@@ -18,7 +18,7 @@ const UPCOMING_BOOKING = {
 
 const GIFTED_BOOKING = {
   code: "WS-02",
-  location: "Sagamu",
+  branch: "Sagamu",
   dates: "Aug 28 (1 day)",
   guest: "Ada Obi",
   total: "₦6,000",
@@ -41,8 +41,8 @@ export default function ClientDashboardPage() {
       {verificationStatus === "UNVERIFIED" && (
         <div className="flex items-center gap-3 rounded-xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-4 text-sm text-amber-700">
           <Badge status="UNVERIFIED" />
-          Your account hasn't been verified yet. A manager or admin will approve you the first time
-          you check in at a location.
+          Your account isn't verified yet. Submit a profile photo and ID document before your first
+          visit — first-time physical access isn't allowed until verification is complete.
         </div>
       )}
 
@@ -61,13 +61,14 @@ export default function ClientDashboardPage() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-semibold text-[var(--color-primary)]">
-              {UPCOMING_BOOKING.code} · {UPCOMING_BOOKING.location}
+              {UPCOMING_BOOKING.code} · {UPCOMING_BOOKING.branch}
             </p>
             <p className="text-sm text-slate-500">{UPCOMING_BOOKING.dates} · Booked for: {UPCOMING_BOOKING.bookedFor} · Paid: {UPCOMING_BOOKING.total}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm">View QR</Button>
-            <Button variant="ghost" size="sm">Reschedule</Button>
+            <Button variant="ghost" size="sm">Cancel</Button>
+            <Button variant="ghost" size="sm">Reassign</Button>
           </div>
         </div>
       </div>
@@ -79,13 +80,14 @@ export default function ClientDashboardPage() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-semibold text-[var(--color-primary)]">
-              {GIFTED_BOOKING.code} · {GIFTED_BOOKING.location}
+              {GIFTED_BOOKING.code} · {GIFTED_BOOKING.branch}
             </p>
             <p className="text-sm text-slate-500">{GIFTED_BOOKING.dates} · Gifted to: {GIFTED_BOOKING.guest} · Paid: {GIFTED_BOOKING.total}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm">View QR</Button>
-            <Button variant="ghost" size="sm">Reschedule</Button>
+            <Button variant="ghost" size="sm">Cancel</Button>
+            <Button variant="ghost" size="sm">Reassign</Button>
           </div>
         </div>
       </div>

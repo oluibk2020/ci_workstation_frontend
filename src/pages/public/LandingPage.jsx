@@ -31,20 +31,20 @@ const FEATURES = [
   {
     icon: Gift,
     title: "Gift a seat",
-    desc: "Book a desk for a teammate or friend. They check in with the QR code — no account needed on their end.",
+    desc: "Book a desk for a teammate or friend. They check in with their own account and QR — invite them in seconds if they're not on Work Station yet.",
   },
   {
     icon: MapPin,
-    title: "Pricing set per location",
-    desc: "Sagamu, Lekki, or wherever we open next — each location is priced for what it actually costs to run.",
+    title: "Pricing set per branch",
+    desc: "Sagamu, Lekki, or wherever we open next — each branch is priced for what it actually costs to run.",
   },
 ];
 
 const STEPS = [
-  { n: "01", title: "Book a desk", desc: "Pick a location, a workstation, and one or more days." },
-  { n: "02", title: "Pay per day", desc: "One flat rate per day — no subscription, no bulk discount." },
-  { n: "03", title: "Get your QR pass", desc: "Generated instantly — for you, or for whoever you're gifting the seat to." },
-  { n: "04", title: "Check in and work", desc: "A manager verifies your pass on arrival and your session starts." },
+  { n: "01", title: "Fund your wallet", desc: "Top up via Paystack anytime — no minimum, and it never expires." },
+  { n: "02", title: "Book a desk", desc: "Pick a branch, a workstation type, and one or more days." },
+  { n: "03", title: "Get your QR pass", desc: "One persistent QR per account — for you, or whoever you're gifting the seat to." },
+  { n: "04", title: "Check in and work", desc: "Staff verify your QR on arrival and your session starts." },
 ];
 
 const TESTIMONIAL = {
@@ -55,8 +55,8 @@ const TESTIMONIAL = {
 };
 
 export default function LandingPage() {
-  const { workstations, getLocationName } = useCatalog();
-  const showcaseWorkstations = workstations.slice(0, 3);
+  const { seatsWithDetails } = useCatalog();
+  const showcaseWorkstations = seatsWithDetails.slice(0, 3);
 
   return (
     <>
@@ -175,11 +175,11 @@ export default function LandingPage() {
               <div className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    {ws.code} · {getLocationName(ws.locationId)}
+                    {ws.code} · {ws.branchName}
                   </p>
                   <span className="h-2 w-2 rounded-full bg-[var(--color-success)] status-dot" />
                 </div>
-                <p className="mt-2 font-semibold text-[var(--color-primary)]">{ws.deskType}</p>
+                <p className="mt-2 font-semibold text-[var(--color-primary)]">{ws.workstationName}</p>
                 <p className="mt-1 text-sm text-slate-500">
                   {ws.externalMonitor ? "External monitor available" : "No external monitor"}
                 </p>
@@ -200,18 +200,19 @@ export default function LandingPage() {
             One flat rate per day. No bundles, no discounts.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-slate-300">
-            Every workstation has a daily rate, set by location. Pay for exactly the days you book —
-            the rate per day doesn't drop whether you book 1 day or 30.
+            Every workstation type has a daily rate, set per branch. Pay for exactly the days you
+            book, straight from your wallet — the rate per day doesn't drop whether you book 1 day
+            or 30.
           </p>
 
           <div className="mx-auto mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
             {showcaseWorkstations.map((ws) => (
               <div key={ws.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
                 <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  {getLocationName(ws.locationId)}
+                  {ws.branchName}
                 </p>
                 <p className="mt-2 font-mono-tight text-2xl font-bold text-white">₦{ws.dailyRate.toLocaleString()}/day</p>
-                <p className="mt-1 text-sm text-slate-400">{ws.deskType}</p>
+                <p className="mt-1 text-sm text-slate-400">{ws.workstationName}</p>
               </div>
             ))}
           </div>

@@ -12,7 +12,7 @@ import { ROLES, VERIFICATION_STATUS } from "../utils/constants";
  *
  * Deliberate design, per product decision: the public login/register flow
  * can only ever produce CLIENT accounts. There is no self-service way to
- * become a Manager or Admin. The only way a Manager account comes to
+ * become Staff or Admin. The only way a Staff account comes to
  * exist is an Admin promoting an existing Client via setRole() (see
  * AdminClientsPage). One ADMIN account is seeded below to bootstrap the
  * system — this mirrors the fact that a real backend also needs a root
@@ -64,7 +64,7 @@ export function UsersProvider({ children }) {
     return record;
   }, []);
 
-  // Admin-only action: promote a Client to Manager, or revert a Manager
+  // Admin-only action: promote a Client to Staff, or revert a Staff account
   // back to Client. Never exposed to the person it's being done to.
   const setRole = useCallback((userId, role) => {
     setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));

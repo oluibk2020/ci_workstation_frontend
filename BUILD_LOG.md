@@ -91,6 +91,97 @@ src/
 
 ## Build Log
 
+### 2026-08-24 — Decision: follow the backend on both flagged conflicts
+
+Resolves the two items flagged in the previous session's entry. Full
+reasoning in `docs/BACKEND_ALIGNMENT.md` §3 and §4.
+
+- [x] **QR model → per-user** (not per-booking). The backend's test cases
+      ("QR belonging to another user", "QR without a booking") only make
+      sense under a per-user model. Corrected `LandingPage.jsx`'s
+      Gift-a-Seat copy, which had said "no account needed on their end" —
+      that's no longer accurate, since checking in now requires the
+      account's own QR. Everything else already described QR as per-user
+      (written before an earlier correction reached me, and never actually
+      reverted) — those pages needed no change.
+- [x] **Cash funding → kept.** The backend's frozen documentation lists it
+      as a launch requirement. The feature was already fully built
+      (`WalletContext.creditUserWallet`, the "Credit Wallet" action in
+      `AdminClientsPage`, `CASH_FUNDING` ledger type) from before
+      development paused — nothing needed reverting.
+- [x] `qrService.js`, `walletService.js` — comments updated from "flagged,
+      needs your decision" to reflect the final resolution. Added
+      `walletService.creditCashFunding` (path is a reasonable guess
+      following their existing REST conventions — confirm against their
+      real API spec, Doc 4, once available).
+- [x] Production build verified clean.
+
+---
+
+### 2026-08-24 — Backend doc review: Testing/Deployment/Maintenance Guide (Doc 7 of 7)
+
+Scope: applied everything safely inferable from the backend team's newly
+shared testing/deployment guide; flagged two reopened conflicts rather
+than silently resolving them. Full detail in `docs/BACKEND_ALIGNMENT.md` §9.
+
+- [x] `api.js` — rewritten to match the confirmed response envelope
+      (`{ success, message, data }` / `{ success, message, code }`),
+      unwrapping `data.data` automatically and attaching `.code` to thrown
+      errors. Default base URL now `/api/v1` per their versioning rule.
+- [x] `walletService.js` — fixed endpoint to the confirmed `/wallet/fund`
+      (was guessing `/wallet/deposit/initialize`).
+- [x] New stub services with confirmed real endpoints, not yet called by
+      any UI: `bookingService.js`, `qrService.js`, `checkinService.js`.
+- [x] `constants.js` — added `BOOKING_DATE_STATUS`, separate from the
+      whole-booking `BOOKING_STATUS` (their guide's diagram shows one
+      booking can have dates simultaneously COMPLETED/ACTIVE/CANCELLED).
+- [x] Branch entity gained `openTime`, `closeTime`, `timezone`,
+      `operatingDays` — confirmed fields we were missing. Updated
+      `CatalogContext`, `BranchFormModal`, `AdminBranchesPage`, public
+      `BranchesPage`.
+- [x] Production build verified clean.
+
+**🔴 Two decisions reopened by this document, not yet acted on:**
+1. **Cash funding** — their frozen doc's pre-launch checklist lists "Cash
+   funding works" as required, reconfirming the feature from their first
+   spec. Conflicts with this project's "no cash payment" decision.
+2. **QR model** — their test cases ("QR belonging to another user", "QR
+   without a booking") imply QR is per-user, not per-booking. Conflicts
+   with this project's "QR is per-booking" decision.
+
+Neither was changed in code — both need your call before touching
+anything QR- or cash-funding-related.
+
+**Still missing:** Documents 1–6 (functional spec, DB/Prisma schema, API
+spec, service architecture, implementation guide) — this was only Doc 7.
+Booking (Phase 3) shouldn't be built with confidence until at least the
+API spec and Prisma schema are available.
+
+---
+
+### 2026-08-24 — ⏸ Development paused pending backend team's actual files
+
+Frontend is in a clean, stable state (build + lint pass). Pausing further
+work until the backend team's real code (schema, endpoints, etc.) is
+available — a spec document doesn't always match the eventual
+implementation, so building further on assumptions risks more rework.
+
+**Open item when resuming:** the cash-funding wallet feature
+(`WalletContext.creditUserWallet`, the "Credit Wallet" action in
+`AdminClientsPage`, `CASH_FUNDING` in `constants.js`/`walletService.js`)
+needs to be removed — it was built against an earlier reading of the spec
+that's since been overridden by a deliberate product decision: no cash
+payment, Paystack-only. See `docs/BACKEND_ALIGNMENT.md` §4.
+
+**Next steps when backend files arrive:**
+1. Re-check `docs/BACKEND_ALIGNMENT.md` against the actual schema/code —
+   specs and implementations can drift.
+2. Strip the cash-funding feature per the note above.
+3. Resume with either Phase 3 (Booking) or the docx Revision 6, whichever
+   is prioritized.
+
+---
+
 ### 2026-08-23 — Fix: removed exposed role picker; Admin can now promote Clients to Manager
 
 **Final login/role system is pending confirmation from the backend team —

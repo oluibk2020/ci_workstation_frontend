@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, CalendarPlus, ListChecks, Gift, Clock, Receipt, Bell, User, Wallet,
-  QrCode, UserCheck, ClipboardList, RefreshCcw, MonitorSmartphone,
+  QrCode, UserCheck, ClipboardList, RefreshCcw, MonitorSmartphone, Armchair,
   Users, MapPin, CreditCard, BarChart3, ShieldCheck, Settings, FileClock, UserCog,
 } from "lucide-react";
 import { ROLES } from "./constants";
@@ -18,24 +18,25 @@ export const NAV_CONFIG = {
     { to: "/client/profile", label: "Profile", icon: User },
   ],
   [ROLES.MANAGER]: [
-    { to: "/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/manager/scan", label: "Scan QR", icon: QrCode },
-    { to: "/manager/approvals", label: "Client Approvals", icon: UserCheck },
-    { to: "/manager/bookings", label: "Today's Bookings", icon: ClipboardList },
-    { to: "/manager/reschedules", label: "Reschedule Requests", icon: RefreshCcw },
-    { to: "/manager/workstations", label: "Workstations", icon: MonitorSmartphone },
+    { to: "/staff/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/staff/scan", label: "Scan QR", icon: QrCode },
+    { to: "/staff/verifications", label: "Verification Requests", icon: UserCheck },
+    { to: "/staff/bookings", label: "Today's Bookings", icon: ClipboardList },
+    { to: "/staff/reassignments", label: "Reassignment Requests", icon: RefreshCcw },
+    { to: "/staff/seats", label: "Seats", icon: Armchair },
   ],
   [ROLES.ADMIN]: [
     { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/admin/clients", label: "Clients", icon: Users },
-    { to: "/admin/approvals", label: "Client Approvals", icon: UserCheck },
-    { to: "/admin/workstations", label: "Workstations", icon: MonitorSmartphone },
-    { to: "/admin/locations", label: "Locations", icon: MapPin },
+    { to: "/admin/verifications", label: "Verification Requests", icon: UserCheck },
+    { to: "/admin/branches", label: "Branches", icon: MapPin },
+    { to: "/admin/workstations", label: "Workstation Types", icon: MonitorSmartphone },
+    { to: "/admin/seats", label: "Seats", icon: Armchair },
     { to: "/admin/bookings", label: "Bookings", icon: ClipboardList },
-    { to: "/admin/reschedules", label: "Reschedule Requests", icon: RefreshCcw },
-    { to: "/admin/payments", label: "Payments", icon: CreditCard },
+    { to: "/admin/reassignments", label: "Reassignment Requests", icon: RefreshCcw },
+    { to: "/admin/payments", label: "Payments & Wallet Credits", icon: CreditCard },
     { to: "/admin/reports", label: "Reports", icon: BarChart3 },
-    { to: "/admin/managers", label: "Managers", icon: UserCog },
+    { to: "/admin/staff", label: "Staff", icon: UserCog },
     { to: "/admin/settings", label: "Settings", icon: Settings },
     { to: "/admin/audit-logs", label: "Audit Logs", icon: FileClock },
   ],
@@ -43,8 +44,8 @@ export const NAV_CONFIG = {
 
 export const ROLE_LABEL = {
   [ROLES.CLIENT]: "Client",
-  [ROLES.MANAGER]: "Manager",
-  [ROLES.ADMIN]: "Administrator",
+  [ROLES.MANAGER]: "Staff",
+  [ROLES.ADMIN]: "Admin",
 };
 
 export const ROLE_ICON = {

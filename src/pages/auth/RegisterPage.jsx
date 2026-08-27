@@ -70,8 +70,9 @@ export default function RegisterPage() {
         </div>
 
         <p className="rounded-lg bg-[var(--color-warning)]/10 p-3 text-xs text-amber-700">
-          New accounts start as <span className="font-mono-tight font-semibold">UNVERIFIED</span>. A
-          manager or admin will approve you the first time you check in at a location.
+          New accounts start as <span className="font-mono-tight font-semibold">UNVERIFIED</span>.
+          Submit a profile photo and ID document from your profile before your first visit — it
+          needs to be reviewed and approved before first-time physical access is allowed.
         </p>
 
         {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
