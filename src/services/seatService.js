@@ -1,14 +1,12 @@
 import { apiFetch } from "./api";
 
-// Not yet called by CatalogContext (which is mocked). Wire these up once
-// the real backend's Seat endpoints exist (see backend spec §7, §16). A
-// Seat is the actual bookable unit — it carries status and physical specs;
-// price lives on its parent Workstation, not here.
+// Confirmed real endpoints (routes/seatRoute.js, routes/adminSeatRoute.js).
 export const seatService = {
-  list: (params) => apiFetch(`/seats${params ? `?${new URLSearchParams(params)}` : ""}`),
-  get: (id) => apiFetch(`/seats/${id}`),
-  create: (payload) => apiFetch("/seats", { method: "POST", body: payload }),
-  update: (id, payload) => apiFetch(`/seats/${id}`, { method: "PATCH", body: payload }),
-  updateStatus: (id, status) => apiFetch(`/seats/${id}/status`, { method: "PATCH", body: { status } }),
-  remove: (id) => apiFetch(`/seats/${id}`, { method: "DELETE" }),
+  listByWorkstation: (workstationId) => apiFetch(`/seats/workstation/${workstationId}`),
+  get: (seatId) => apiFetch(`/seats/${seatId}`),
+  create: (workstationId, payload) =>
+    apiFetch(`/admin/seats/workstation/${workstationId}`, { method: "POST", body: payload }),
+  update: (seatId, payload) => apiFetch(`/admin/seats/${seatId}`, { method: "PATCH", body: payload }),
+  updateStatus: (seatId, status) =>
+    apiFetch(`/admin/seats/${seatId}/status`, { method: "PATCH", body: { status } }),
 };

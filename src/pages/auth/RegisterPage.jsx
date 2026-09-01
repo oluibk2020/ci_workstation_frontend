@@ -21,8 +21,18 @@ export default function RegisterPage() {
     try {
       await register(form);
       navigate("/client/dashboard", { replace: true });
-    } catch {
-      setError("Something went wrong creating your account. Please try again.");
+    } catch (err) {
+      // Their error middleware is a stub (see docs/BACKEND_CODE_REVIEW.md
+      // §6) — a duplicate email throws "Unable to create account." on
+      // their end, but it never reaches here: it's swallowed into a
+      // generic 500 with no real message. Validation errors (missing
+      // fields, short password) DO come through properly via their
+      // validator layer, so those still show accurately.
+      setError(
+        err?.isGenericServerError
+          ? "Couldn't create your account — this email may already be registered."
+          : err.message || "Something went wrong creating your account. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }

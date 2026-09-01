@@ -4,10 +4,10 @@ import Button from "../common/Button";
 import { useCatalog } from "../../context/CatalogContext";
 
 function emptyForm(defaultBranchId) {
-  return { name: "", branchId: defaultBranchId || "", dailyRate: "" };
+  return { name: "", branchId: defaultBranchId || "", pricePerDay: "" };
 }
 
-export default function WorkstationFormModal({ open, onClose, onSubmit, initialData }) {
+export default function WorkstationFormModal({ open, onClose, onSubmit, initialData, submitting }) {
   const { branches } = useCatalog();
   const isEdit = !!initialData;
   const [form, setForm] = useState(emptyForm(branches[0]?.id));
@@ -16,7 +16,7 @@ export default function WorkstationFormModal({ open, onClose, onSubmit, initialD
     if (open) {
       setForm(
         initialData
-          ? { name: initialData.name, branchId: initialData.branchId, dailyRate: initialData.dailyRate }
+          ? { name: initialData.name, branchId: initialData.branchId, pricePerDay: initialData.pricePerDay }
           : emptyForm(branches[0]?.id)
       );
     }
@@ -29,8 +29,7 @@ export default function WorkstationFormModal({ open, onClose, onSubmit, initialD
 
   function handleSubmit(e) {
     e.preventDefault();
-    onSubmit({ ...form, dailyRate: Number(form.dailyRate) || 0 });
-    onClose();
+    onSubmit({ ...form, pricePerDay: Number(form.pricePerDay) || 0 });
   }
 
   return (
@@ -71,14 +70,13 @@ export default function WorkstationFormModal({ open, onClose, onSubmit, initialD
             type="number"
             min="0"
             step="500"
-            value={form.dailyRate}
-            onChange={update("dailyRate")}
+            value={form.pricePerDay}
+            onChange={update("pricePerDay")}
             className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
             placeholder="8000"
           />
           <p className="mt-1.5 text-xs text-slate-400">
-            Every seat under this workstation type shares this rate. Individual seats only carry
-            status and physical specs, not their own price.
+            Every seat under this workstation type shares this rate.
           </p>
         </div>
 
@@ -86,7 +84,9 @@ export default function WorkstationFormModal({ open, onClose, onSubmit, initialD
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">{isEdit ? "Save changes" : "Create workstation type"}</Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? "Saving..." : isEdit ? "Save changes" : "Create workstation type"}
+          </Button>
         </div>
       </form>
     </Modal>

@@ -3,33 +3,32 @@ import Modal from "../common/Modal";
 import Button from "../common/Button";
 
 const DAYS = [
-  { value: "MON", label: "Mon" },
-  { value: "TUE", label: "Tue" },
-  { value: "WED", label: "Wed" },
-  { value: "THU", label: "Thu" },
-  { value: "FRI", label: "Fri" },
-  { value: "SAT", label: "Sat" },
-  { value: "SUN", label: "Sun" },
+  { value: "MONDAY", label: "Mon" },
+  { value: "TUESDAY", label: "Tue" },
+  { value: "WEDNESDAY", label: "Wed" },
+  { value: "THURSDAY", label: "Thu" },
+  { value: "FRIDAY", label: "Fri" },
+  { value: "SATURDAY", label: "Sat" },
+  { value: "SUNDAY", label: "Sun" },
 ];
 
 const EMPTY = {
   name: "",
   address: "",
   timezone: "Africa/Lagos",
-  openTime: "08:00",
-  closeTime: "20:00",
-  operatingDays: ["MON", "TUE", "WED", "THU", "FRI", "SAT"],
+  openingTime: "08:00",
+  closingTime: "20:00",
+  operatingDays: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
 };
 
-export default function BranchFormModal({ open, onClose, onSubmit, initialData }) {
+// Create-only — the backend has no branch update/delete route yet, so
+// this form never runs in "edit" mode.
+export default function BranchFormModal({ open, onClose, onSubmit, submitting, submitError }) {
   const [form, setForm] = useState(EMPTY);
-  const isEdit = !!initialData;
 
   useEffect(() => {
-    if (open) {
-      setForm(initialData ? { ...EMPTY, ...initialData } : EMPTY);
-    }
-  }, [open, initialData]);
+    if (open) setForm(EMPTY);
+  }, [open]);
 
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -47,11 +46,10 @@ export default function BranchFormModal({ open, onClose, onSubmit, initialData }
   function handleSubmit(e) {
     e.preventDefault();
     onSubmit(form);
-    onClose();
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? "Edit branch" : "New branch"}>
+    <Modal open={open} onClose={onClose} title="New branch">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="text-sm font-medium text-slate-700">Branch name</label>
@@ -80,8 +78,8 @@ export default function BranchFormModal({ open, onClose, onSubmit, initialData }
             <input
               type="time"
               required
-              value={form.openTime}
-              onChange={update("openTime")}
+              value={form.openingTime}
+              onChange={update("openingTime")}
               className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
             />
           </div>
@@ -90,8 +88,8 @@ export default function BranchFormModal({ open, onClose, onSubmit, initialData }
             <input
               type="time"
               required
-              value={form.closeTime}
-              onChange={update("closeTime")}
+              value={form.closingTime}
+              onChange={update("closingTime")}
               className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
             />
           </div>
@@ -125,22 +123,21 @@ export default function BranchFormModal({ open, onClose, onSubmit, initialData }
               </button>
             ))}
           </div>
-          <p className="mt-1.5 text-xs text-slate-400">
-            The backend uses opening/closing time and timezone to automatically check clients out at
-            closing, and operating days to determine which dates count as bookable business days.
-          </p>
         </div>
 
         <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-          Pricing isn't set here — it lives on each Workstation type you create under this branch, so
-          different desk types at the same branch can have different rates.
+          Pricing isn't set here — it lives on each Workstation type you create under this branch.
         </p>
+
+        {submitError && <p className="text-sm text-[var(--color-danger)]">{submitError}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">{isEdit ? "Save changes" : "Create branch"}</Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? "Creating..." : "Create branch"}
+          </Button>
         </div>
       </form>
     </Modal>

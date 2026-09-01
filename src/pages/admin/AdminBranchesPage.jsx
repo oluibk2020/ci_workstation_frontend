@@ -1,41 +1,29 @@
 import { useState } from "react";
-import { MapPin, Plus, Pencil, Trash2 } from "lucide-react";
+import { MapPin, Plus, Loader2 } from "lucide-react";
 import { useCatalog } from "../../context/CatalogContext";
 import BranchFormModal from "../../components/branch/BranchFormModal";
 import Button from "../../components/common/Button";
 
+// Wired to the real backend. NOTE: only branch creation exists on their
+// API right now (POST /admin/branches) — no update or delete route
+// anywhere, so this page deliberately doesn't offer either. See
+// docs/BACKEND_CODE_REVIEW.md.
 export default function AdminBranchesPage() {
-  const { branches, workstations, addBranch, updateBranch, removeBranch, getWorkstationsForBranch } = useCatalog();
+  const { branches, isLoading, error, getWorkstationsForBranch, addBranch } = useCatalog();
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [error, setError] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function openCreate() {
-    setEditing(null);
-    setError("");
-    setModalOpen(true);
-  }
-
-  function openEdit(branch) {
-    setEditing(branch);
-    setError("");
-    setModalOpen(true);
-  }
-
-  function handleSubmit(data) {
-    if (editing) {
-      updateBranch(editing.id, data);
-    } else {
-      addBranch(data);
-    }
-  }
-
-  function handleDelete(branch) {
-    const result = removeBranch(branch.id);
-    if (!result.ok) {
-      setError(`Can't delete "${branch.name}": ${result.reason}`);
-    } else {
-      setError("");
+  async function handleSubmit(data) {
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      await addBranch(data);
+      setModalOpen(false);
+    } catch (err) {
+      setSubmitError(err.message || "Couldn't create the branch.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -45,10 +33,11 @@ export default function AdminBranchesPage() {
         <div>
           <h1 className="text-xl font-bold text-[var(--color-primary)]">Branches</h1>
           <p className="text-sm text-slate-500">
-            Only Super Admins can create or edit branches. Pricing is set per workstation type, not here.
+            Only Super Admins can create branches. Pricing is set per workstation type, not here.
+            Editing and removing a branch aren't available yet — the backend has no route for either.
           </p>
         </div>
-        <Button onClick={openCreate}>
+        <Button onClick={() => setModalOpen(true)}>
           <Plus size={16} />
           New branch
         </Button>
@@ -60,46 +49,42 @@ export default function AdminBranchesPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {branches.map((branch) => {
-          const workstationCount = getWorkstationsForBranch(branch.id).length;
-          return (
-            <div key={branch.id} className="rounded-2xl border border-[var(--color-line)] bg-white p-5">
-              <div className="flex items-start justify-between gap-3">
+      {isLoading ? (
+        <p className="flex items-center gap-2 text-sm text-slate-400">
+          <Loader2 size={16} className="animate-spin" /> Loading branches...
+        </p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {branches.map((branch) => {
+            const workstationCount = getWorkstationsForBranch(branch.id).length;
+            return (
+              <div key={branch.id} className="rounded-2xl border border-[var(--color-line)] bg-white p-5">
                 <div className="flex items-center gap-2 text-[var(--color-accent)]">
                   <MapPin size={18} />
                   <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide">{branch.name}</p>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => openEdit(branch)}
-                    className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-[var(--color-accent)]"
-                    aria-label={`Edit ${branch.name}`}
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(branch)}
-                    className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-[var(--color-danger)]"
-                    aria-label={`Delete ${branch.name}`}
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                <p className="mt-3 text-sm text-slate-600">{branch.address}</p>
+                <p className="mt-2 font-mono-tight text-xs text-slate-400">
+                  {branch.openingTime}–{branch.closingTime} · {branch.timezone} ·{" "}
+                  {Array.isArray(branch.operatingDays) ? branch.operatingDays.join(", ") : ""}
+                </p>
+                <div className="mt-4 border-t border-[var(--color-line)] pt-4 text-sm text-slate-500">
+                  {workstationCount} workstation type{workstationCount === 1 ? "" : "s"}
                 </div>
               </div>
-              <p className="mt-3 text-sm text-slate-600">{branch.address}</p>
-              <p className="mt-2 font-mono-tight text-xs text-slate-400">
-                {branch.openTime}–{branch.closeTime} · {branch.timezone} · {branch.operatingDays?.join(", ")}
-              </p>
-              <div className="mt-4 border-t border-[var(--color-line)] pt-4 text-sm text-slate-500">
-                {workstationCount} workstation type{workstationCount === 1 ? "" : "s"}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+          {branches.length === 0 && <p className="text-sm text-slate-400">No branches yet — create the first one.</p>}
+        </div>
+      )}
 
-      <BranchFormModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleSubmit} initialData={editing} />
+      <BranchFormModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSubmit={handleSubmit}
+        submitting={submitting}
+        submitError={submitError}
+      />
     </div>
   );
 }

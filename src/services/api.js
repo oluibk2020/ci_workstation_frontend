@@ -5,21 +5,25 @@
  * should call `apiFetch` rather than using `fetch` directly, so auth
  * headers, error handling, and the base URL live in exactly one place.
  *
- * Response envelope matches the backend's documented API principles
- * (Testing/Deployment/Maintenance Guide §13/§23):
- *   Success: { success: true,  message: "...", data: {...} }
- *   Error:   { success: false, message: "...", code: "ERROR_CODE" }
+ * Documented response envelope (Testing/Deployment/Maintenance Guide
+ * §13/§23): { success, message, data } / { success, message, code }.
  *
- * apiFetch unwraps `data.data` on success so callers get the clean payload
- * directly, and attaches `.code` to thrown errors so callers can branch on
- * the documented error codes (INSUFFICIENT_BALANCE, SEAT_UNAVAILABLE,
- * BOOKING_CONFLICT, REASSIGNMENT_LIMIT_REACHED, QR_REVOKED, etc.) instead
- * of matching on message text.
+ * REALITY CHECK (see docs/BACKEND_CODE_REVIEW.md §6): their actual
+ * middleware/errorMiddleware.js is currently a stub. Every thrown error,
+ * regardless of cause, becomes a flat HTTP 500 with shape
+ * { error: "Internal Server Error..." } — a different key (`error`, not
+ * `message`), no `code` ever, and the real thrown message (e.g. "Invalid
+ * email or password.") is discarded. Only authMiddleware/roleMiddleware's
+ * own 401/403 responses use the documented { success, message } shape.
+ * apiFetch below handles both realities: it reads `.message` if present,
+ * falls back to `.error` (their stub's actual key), and always attaches
+ * the HTTP status so callers can tell "a real 401/403" apart from "their
+ * error handling isn't finished yet and this 500 could mean anything."
  */
 
-// Backend versions its API under /api/v1 (Testing/Deployment/Maintenance
-// Guide §13, "Version APIs under /api/v1").
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api/v1";
+// Backend confirmed running on port 1524 locally (docs/PATCH_NOTES.md).
+// It already versions its API under /api/v1 itself.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:1524/api/v1";
 
 function getToken() {
   try {
@@ -47,8 +51,15 @@ export async function apiFetch(path, { method = "GET", body, headers = {} } = {}
   const envelope = isJson ? await response.json() : null;
 
   if (!response.ok || envelope?.success === false) {
-    const err = new Error(envelope?.message || `Request failed with status ${response.status}`);
-    err.code = envelope?.code; // e.g. INSUFFICIENT_BALANCE, SEAT_UNAVAILABLE, QR_REVOKED
+    const err = new Error(
+      envelope?.message || envelope?.error || `Request failed with status ${response.status}`
+    );
+    err.code = envelope?.code; // documented codes — INSUFFICIENT_BALANCE, SEAT_UNAVAILABLE, etc.
+    err.status = response.status;
+    // True whenever this was their generic error-middleware stub (no
+    // code, no proper `.message` — only the `.error` fallback text) hit
+    // rather than a real, documented business-rule error.
+    err.isGenericServerError = response.status === 500 && !envelope?.code && !envelope?.message;
     throw err;
   }
 

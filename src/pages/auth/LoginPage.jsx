@@ -22,10 +22,15 @@ export default function LoginPage() {
       const redirectTo = location.state?.from?.pathname || dashboardPathForRole(user.role);
       navigate(redirectTo, { replace: true });
     } catch (err) {
+      // Their error middleware is currently a stub — every failure,
+      // including plain "wrong password," comes back as a generic 500
+      // with no real message (see docs/BACKEND_CODE_REVIEW.md §6). There's
+      // no reliable way yet to tell "wrong password" apart from "server
+      // actually broke," so this stays honest rather than guessing.
       setError(
-        err?.code === "NO_ACCOUNT"
-          ? "We couldn't find an account with that email. Create one below."
-          : "Couldn't log you in. Check your details and try again."
+        err?.isGenericServerError
+          ? "Couldn't log you in. Double-check your email and password — the server doesn't yet return a specific reason for login failures."
+          : err.message || "Couldn't log you in. Check your details and try again."
       );
     } finally {
       setSubmitting(false);

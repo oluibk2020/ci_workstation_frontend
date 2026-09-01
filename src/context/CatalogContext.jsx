@@ -1,149 +1,149 @@
-import { createContext, useContext, useState, useCallback } from "react";
-import { SEAT_STATUS } from "../utils/constants";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useAuth } from "./AuthContext";
+import { branchService } from "../services/branchService";
+import { workstationService } from "../services/workstationService";
+import { seatService } from "../services/seatService";
 
 /**
  * CatalogContext
  * --------------
- * Models the backend's real hierarchy: Platform → Branch → Workstation →
- * Seat (see docs/BACKEND_ALIGNMENT.md §2). A Workstation is a type/category
- * belonging to one branch and holds the daily price (e.g. "Standing Desk,
- * Sagamu, ₦8,000/day"). A Seat is the actual bookable unit — an individual
- * physical instance of that workstation type, holding status and physical
- * specs (monitor, power, internet). Multiple identical seats can share one
- * workstation type and its price.
+ * Wired to the real backend (docs/PATCH_NOTES.md — confirmed running).
  *
- * Branch also carries operating hours, a timezone, and operating days —
- * confirmed by the Testing/Deployment/Maintenance Guide §9/§24. The
- * backend uses these to run automatic checkout at each branch's closing
- * time (in its own timezone), independent of other branches.
+ * IMPORTANT CORRECTION to an earlier assumption here: seat endpoints are
+ * NOT public. `routes/seatRoute.js` applies `auth` to both
+ * GET /seats/workstation/:workstationId and GET /seats/:seatId — only
+ * Branches and Workstations are genuinely public reads. Fetching seats
+ * while logged out gets a 401. Rather than let that 401 corrupt the whole
+ * catalog's error state (branches/workstations would still be fine),
+ * seats are loaded separately and only attempted while authenticated —
+ * and re-fetched automatically the moment someone logs in, without
+ * needing a page refresh.
  *
- * Branch creation is restricted to Super Admin at the UI level (only
- * rendered on /admin routes) — the backend must independently enforce this
- * once it exists; this context does not perform that check.
+ * Admin mutations call the real endpoints that exist; the ones that don't
+ * are simply not exposed to the UI:
+ * - Branches: only CREATE exists on the backend (POST /admin/branches).
+ *   No update, no delete, no status route anywhere. `updateBranch` and
+ *   `removeBranch` are NOT provided — AdminBranchesPage only offers
+ *   create + list.
+ * - Workstations: create, update, and status-update all exist. No delete.
+ * - Seats: create, update, and status-update all exist. No delete.
  *
- * Mocked as in-memory state. CRUD function shapes (add/update/remove) are
- * designed to map 1:1 onto future branchService/workstationService/
- * seatService calls — swapping mocked state for real API calls is the only
- * change needed later.
+ * This isn't a frontend limitation — it's a real gap in their current API
+ * (see docs/BACKEND_CODE_REVIEW.md). Nothing here should silently pretend
+ * a capability exists that the backend doesn't have.
  */
 
 const CatalogContext = createContext(null);
 
-let idCounter = 100;
-function nextId(prefix) {
-  idCounter += 1;
-  return `${prefix}-${idCounter}`;
-}
-
-const INITIAL_BRANCHES = [
-  {
-    id: "branch-1",
-    name: "Sagamu",
-    address: "Akarigbo Road, Sagamu, Ogun State",
-    timezone: "Africa/Lagos",
-    openTime: "08:00",
-    closeTime: "20:00",
-    operatingDays: ["MON", "TUE", "WED", "THU", "FRI", "SAT"],
-    createdAt: "2026-06-01",
-  },
-  {
-    id: "branch-2",
-    name: "Lekki",
-    address: "Admiralty Way, Lekki Phase 1, Lagos",
-    timezone: "Africa/Lagos",
-    openTime: "08:00",
-    closeTime: "20:00",
-    operatingDays: ["MON", "TUE", "WED", "THU", "FRI", "SAT"],
-    createdAt: "2026-07-10",
-  },
-];
-
-const INITIAL_WORKSTATIONS = [
-  { id: "wk-1", branchId: "branch-1", name: "Standing Desk", dailyRate: 8000 },
-  { id: "wk-2", branchId: "branch-1", name: "Shared Bench", dailyRate: 6000 },
-  { id: "wk-3", branchId: "branch-1", name: "Quiet Booth", dailyRate: 9000 },
-  { id: "wk-4", branchId: "branch-2", name: "Quiet Booth", dailyRate: 9500 },
-  { id: "wk-5", branchId: "branch-2", name: "Standing Desk", dailyRate: 7500 },
-  { id: "wk-6", branchId: "branch-2", name: "Shared Bench", dailyRate: 6500 },
-];
-
-const INITIAL_SEATS = [
-  { id: "seat-1", workstationId: "wk-1", code: "WS-01", externalMonitor: true, powerOutlets: 2, internetMbps: 500, status: SEAT_STATUS.AVAILABLE },
-  { id: "seat-2", workstationId: "wk-2", code: "WS-02", externalMonitor: false, powerOutlets: 1, internetMbps: 300, status: SEAT_STATUS.AVAILABLE },
-  { id: "seat-3", workstationId: "wk-3", code: "WS-03", externalMonitor: true, powerOutlets: 2, internetMbps: 500, status: SEAT_STATUS.OCCUPIED },
-  { id: "seat-4", workstationId: "wk-4", code: "WS-11", externalMonitor: true, powerOutlets: 2, internetMbps: 500, status: SEAT_STATUS.AVAILABLE },
-  { id: "seat-5", workstationId: "wk-5", code: "WS-12", externalMonitor: false, powerOutlets: 2, internetMbps: 300, status: SEAT_STATUS.MAINTENANCE },
-  { id: "seat-6", workstationId: "wk-6", code: "WS-13", externalMonitor: false, powerOutlets: 1, internetMbps: 300, status: SEAT_STATUS.AVAILABLE },
-];
-
 export function CatalogProvider({ children }) {
-  const [branches, setBranches] = useState(INITIAL_BRANCHES);
-  const [workstations, setWorkstations] = useState(INITIAL_WORKSTATIONS);
-  const [seats, setSeats] = useState(INITIAL_SEATS);
+  const { isAuthenticated } = useAuth();
+  const [branches, setBranches] = useState([]);
+  const [workstations, setWorkstations] = useState([]);
+  const [seats, setSeats] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [seatsRequireAuth, setSeatsRequireAuth] = useState(false);
 
-  // ---------- Branches ----------
-  const addBranch = useCallback((data) => {
-    const branch = { id: nextId("branch"), createdAt: new Date().toISOString().slice(0, 10), ...data };
+  // Branches + Workstations: genuinely public, loaded once regardless of
+  // auth state.
+  const loadPublicCatalog = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const { branches: branchList } = await branchService.list();
+      setBranches(branchList);
+
+      const workstationLists = await Promise.all(
+        branchList.map((b) => workstationService.listByBranch(b.id).then((r) => r.workstations))
+      );
+      // Prisma serializes Decimal fields (pricePerDay) as strings over
+      // JSON — normalize to Number once here so every consumer downstream
+      // can safely call .toLocaleString() etc.
+      const allWorkstations = workstationLists.flat().map((wk) => ({ ...wk, pricePerDay: Number(wk.pricePerDay) }));
+      setWorkstations(allWorkstations);
+    } catch (err) {
+      setError(err.message || "Couldn't load the catalog.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Seats: requires auth on the real backend. Only attempted while logged
+  // in; re-runs automatically when auth state changes (e.g. login).
+  const loadSeats = useCallback(async (workstationList) => {
+    if (!isAuthenticated || workstationList.length === 0) {
+      setSeats([]);
+      setSeatsRequireAuth(!isAuthenticated);
+      return;
+    }
+    setSeatsRequireAuth(false);
+    try {
+      const seatLists = await Promise.all(
+        workstationList.map((wk) => seatService.listByWorkstation(wk.id).then((r) => r.seats))
+      );
+      setSeats(seatLists.flat());
+    } catch (err) {
+      // A seat-fetch failure shouldn't take down the whole catalog view —
+      // branches/workstations are still valid and already rendered.
+      console.error("Couldn't load seats:", err.message);
+      setSeats([]);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    loadPublicCatalog();
+  }, [loadPublicCatalog]);
+
+  useEffect(() => {
+    loadSeats(workstations);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, workstations.length]);
+
+  const reload = useCallback(async () => {
+    await loadPublicCatalog();
+  }, [loadPublicCatalog]);
+
+  // ---------- Branches (create only — see header note) ----------
+  const addBranch = useCallback(async (data) => {
+    const { branch } = await branchService.create(data);
     setBranches((prev) => [...prev, branch]);
     return branch;
   }, []);
 
-  const updateBranch = useCallback((id, data) => {
-    setBranches((prev) => prev.map((b) => (b.id === id ? { ...b, ...data } : b)));
+  // ---------- Workstations ----------
+  const addWorkstation = useCallback(async (data) => {
+    const { branchId, ...rest } = data;
+    const { workstation } = await workstationService.create(branchId, rest);
+    const normalized = { ...workstation, pricePerDay: Number(workstation.pricePerDay) };
+    setWorkstations((prev) => [...prev, normalized]);
+    return normalized;
   }, []);
 
-  const removeBranch = useCallback(
-    (id) => {
-      const inUse = workstations.some((wk) => wk.branchId === id);
-      if (inUse) {
-        return { ok: false, reason: "This branch still has workstation types assigned to it." };
-      }
-      setBranches((prev) => prev.filter((b) => b.id !== id));
-      return { ok: true };
-    },
-    [workstations]
-  );
-
-  // ---------- Workstations (type/category, holds price) ----------
-  const addWorkstation = useCallback((data) => {
-    const workstation = { id: nextId("wk"), ...data };
-    setWorkstations((prev) => [...prev, workstation]);
-    return workstation;
+  const updateWorkstation = useCallback(async (id, data) => {
+    const { workstation } = await workstationService.update(id, data);
+    const normalized = { ...workstation, pricePerDay: Number(workstation.pricePerDay) };
+    setWorkstations((prev) => prev.map((wk) => (wk.id === id ? { ...wk, ...normalized } : wk)));
+    return normalized;
   }, []);
 
-  const updateWorkstation = useCallback((id, data) => {
-    setWorkstations((prev) => prev.map((wk) => (wk.id === id ? { ...wk, ...data } : wk)));
-  }, []);
-
-  const removeWorkstation = useCallback(
-    (id) => {
-      const inUse = seats.some((seat) => seat.workstationId === id);
-      if (inUse) {
-        return { ok: false, reason: "This workstation type still has seats assigned to it." };
-      }
-      setWorkstations((prev) => prev.filter((wk) => wk.id !== id));
-      return { ok: true };
-    },
-    [seats]
-  );
-
-  // ---------- Seats (the bookable unit, holds status + physical specs) ----------
-  const addSeat = useCallback((data) => {
-    const seat = { id: nextId("seat"), status: SEAT_STATUS.AVAILABLE, ...data };
+  // ---------- Seats ----------
+  const addSeat = useCallback(async (data) => {
+    const { workstationId, ...rest } = data;
+    const { seat } = await seatService.create(workstationId, rest);
     setSeats((prev) => [...prev, seat]);
     return seat;
   }, []);
 
-  const updateSeat = useCallback((id, data) => {
-    setSeats((prev) => prev.map((seat) => (seat.id === id ? { ...seat, ...data } : seat)));
+  const updateSeat = useCallback(async (id, data) => {
+    const { seat } = await seatService.update(id, data);
+    setSeats((prev) => prev.map((s) => (s.id === id ? { ...s, ...seat } : s)));
+    return seat;
   }, []);
 
-  const updateSeatStatus = useCallback((id, status) => {
-    setSeats((prev) => prev.map((seat) => (seat.id === id ? { ...seat, status } : seat)));
-  }, []);
-
-  const removeSeat = useCallback((id) => {
-    setSeats((prev) => prev.filter((seat) => seat.id !== id));
+  const updateSeatStatus = useCallback(async (id, status) => {
+    const { seat } = await seatService.updateStatus(id, status);
+    setSeats((prev) => prev.map((s) => (s.id === id ? { ...s, ...seat } : s)));
+    return seat;
   }, []);
 
   // ---------- Lookups ----------
@@ -158,14 +158,12 @@ export function CatalogProvider({ children }) {
     [seats]
   );
 
-  // Convenience: a fully joined seat, for catalog display (public site,
-  // admin/staff seat lists) without every consumer re-deriving the joins.
   const seatsWithDetails = seats.map((seat) => {
     const workstation = getWorkstation(seat.workstationId);
     return {
       ...seat,
       workstationName: workstation?.name || "Unknown",
-      dailyRate: workstation?.dailyRate ?? 0,
+      pricePerDay: Number(workstation?.pricePerDay ?? 0),
       branchId: workstation?.branchId,
       branchName: getBranchName(workstation?.branchId),
     };
@@ -176,16 +174,16 @@ export function CatalogProvider({ children }) {
     workstations,
     seats,
     seatsWithDetails,
+    isLoading,
+    error,
+    reload,
+    seatsRequireAuth,
     addBranch,
-    updateBranch,
-    removeBranch,
     addWorkstation,
     updateWorkstation,
-    removeWorkstation,
     addSeat,
     updateSeat,
     updateSeatStatus,
-    removeSeat,
     getBranchName,
     getWorkstation,
     getWorkstationsForBranch,

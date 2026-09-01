@@ -1,13 +1,13 @@
 import { apiFetch } from "./api";
 
-// Not yet called by CatalogContext (which is mocked). Wire these up once
-// the real backend's Workstation endpoints exist (see backend spec §7,
-// §16). A Workstation is a type/category with a daily price — it does not
-// carry status; that lives on Seat (see seatService.js).
+// Confirmed real endpoints (routes/workstationRoute.js, routes/adminWorkstationRoute.js).
 export const workstationService = {
-  list: (params) => apiFetch(`/workstations${params ? `?${new URLSearchParams(params)}` : ""}`),
-  get: (id) => apiFetch(`/workstations/${id}`),
-  create: (payload) => apiFetch("/workstations", { method: "POST", body: payload }),
-  update: (id, payload) => apiFetch(`/workstations/${id}`, { method: "PATCH", body: payload }),
-  remove: (id) => apiFetch(`/workstations/${id}`, { method: "DELETE" }),
+  listByBranch: (branchId) => apiFetch(`/workstations/branch/${branchId}`),
+  get: (workstationId) => apiFetch(`/workstations/${workstationId}`),
+  create: (branchId, payload) =>
+    apiFetch(`/admin/workstations/branch/${branchId}`, { method: "POST", body: payload }),
+  update: (workstationId, payload) =>
+    apiFetch(`/admin/workstations/${workstationId}`, { method: "PATCH", body: payload }),
+  updateStatus: (workstationId, status) =>
+    apiFetch(`/admin/workstations/${workstationId}/status`, { method: "PATCH", body: { status } }),
 };

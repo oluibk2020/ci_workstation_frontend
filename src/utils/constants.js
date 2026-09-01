@@ -1,18 +1,27 @@
 // Central place for the enums used throughout the docs so copy/labels stay
 // consistent wherever a status badge is rendered.
 //
-// Role, status, and ledger-type VALUES below are aligned to the backend
-// team's technical specification — see docs/BACKEND_ALIGNMENT.md for the
-// full comparison against what the frontend had before that spec existed.
+// Values below are taken directly from the backend team's committed
+// Prisma schema (docs/BACKEND_CODE_REVIEW.md §4) — these are as close to
+// certain as anything can be before real integration, since they come
+// from their actual schema.prisma, not a spec document's prose.
 
 export const ROLES = {
-  CLIENT: "USER", // backend calls this role USER; "Client" is just our UI copy
-  MANAGER: "STAFF", // backend calls this role STAFF
-  ADMIN: "SUPER_ADMIN", // backend calls this role SUPER_ADMIN
+  CLIENT: "USER",
+  MANAGER: "STAFF",
+  ADMIN: "SUPER_ADMIN",
 };
 
-// Backend requires all four — verification is a submit-then-review flow
-// (profile photo + ID document), not a single approve tap at check-in.
+// Account status — separate from verification. Confirmed: UserStatus enum
+// in schema.prisma. Banning/activating is PATCH /admin/users/:id/status.
+export const USER_STATUS = {
+  ACTIVE: "ACTIVE",
+  BANNED: "BANNED",
+};
+
+// Verification is a submit-then-review flow (profile photo + ID
+// document), not a single approve tap at check-in. Confirmed exact match
+// to their VerificationStatus enum.
 export const VERIFICATION_STATUS = {
   UNVERIFIED: "UNVERIFIED",
   PENDING: "PENDING",
@@ -20,75 +29,96 @@ export const VERIFICATION_STATUS = {
   REJECTED: "REJECTED",
 };
 
-// Status lives on the SEAT (the bookable unit), not the Workstation (the
-// type/category that holds the price). See CatalogContext.
-export const SEAT_STATUS = {
-  AVAILABLE: "AVAILABLE",
-  BOOKED: "BOOKED",
-  OCCUPIED: "OCCUPIED",
-  MAINTENANCE: "MAINTENANCE",
-  OFFLINE: "OFFLINE",
-};
+// Branch, Workstation, and Seat each carry their own simple ACTIVE/INACTIVE
+// status (confirmed: BranchStatus, WorkstationStatus, SeatStatus in
+// schema.prisma — all three are the same two-value enum shape). Whether a
+// seat is booked on a given DAY is never a static field on Seat — it's
+// computed from BookingDate records via the availability endpoint.
+export const BRANCH_STATUS = { ACTIVE: "ACTIVE", INACTIVE: "INACTIVE" };
+export const WORKSTATION_STATUS = { ACTIVE: "ACTIVE", INACTIVE: "INACTIVE" };
+export const SEAT_STATUS = { ACTIVE: "ACTIVE", INACTIVE: "INACTIVE" };
 
-// Whole-booking status.
+// Whole-booking status. Confirmed exact match to their BookingStatus enum
+// — notably simpler than earlier assumptions: no BOOKED/VERIFIED/
+// REASSIGNED/NO_SHOW/INTERRUPTED at this level. Reassignment is tracked
+// via a separate BookingReassignment table, not a status value here.
 export const BOOKING_STATUS = {
-  BOOKED: "BOOKED",
-  VERIFIED: "VERIFIED",
   ACTIVE: "ACTIVE",
+  CANCELLED: "CANCELLED",
   COMPLETED: "COMPLETED",
-  REASSIGNED: "REASSIGNED", // a date was moved to another date/branch/workstation/seat
-  CANCELLED: "CANCELLED", // date released, value returned as wallet credit — never a cash refund
   EXPIRED: "EXPIRED",
-  NO_SHOW: "NO_SHOW",
-  INTERRUPTED: "INTERRUPTED",
 };
 
-// Per-date status, independent of the whole booking's status — confirmed by
-// the Testing/Deployment/Maintenance Guide §3: a single multi-day booking
+// Per-date status, independent of the whole booking's status. Confirmed
+// exact match to their BookingDateStatus enum. A single multi-day booking
 // can have one date COMPLETED, another ACTIVE, another CANCELLED, all at
-// once. Cancelling one date must never affect the others in the same
-// booking.
+// once — cancelling one date must never affect the others.
 export const BOOKING_DATE_STATUS = {
-  BOOKED: "BOOKED",
   ACTIVE: "ACTIVE",
-  COMPLETED: "COMPLETED",
   CANCELLED: "CANCELLED",
   REASSIGNED: "REASSIGNED",
-  NO_SHOW: "NO_SHOW",
+  COMPLETED: "COMPLETED",
+  EXPIRED: "EXPIRED",
 };
 
-export const BOOKED_FOR_TYPE = {
+// "bookingFor" in their actual booking payload — SELF or OTHER (not
+// "GUEST"). Booking for OTHER requires an existing account, or
+// createBeneficiaryAccount:true + beneficiaryName to invite a new one.
+export const BOOKING_FOR = {
   SELF: "SELF",
-  GUEST: "GUEST", // must resolve to an existing or newly-invited real account — see alignment doc §7
+  OTHER: "OTHER",
+};
+
+export const QR_STATUS = {
+  ACTIVE: "ACTIVE",
+  REVOKED: "REVOKED",
+};
+
+export const CHECKIN_STATUS = {
+  CHECKED_IN: "CHECKED_IN",
+  CHECKED_OUT: "CHECKED_OUT",
+};
+
+export const PAYMENT_STATUS = {
+  INITIATED: "INITIATED",
+  PENDING: "PENDING",
+  SUCCESS: "SUCCESS",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
 };
 
 // Tailwind class fragments keyed by status, so badges stay visually
 // consistent with docs Section 19 (Warning = unverified/pending, etc).
 export const STATUS_STYLES = {
-  AVAILABLE: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
-  BOOKED: "bg-[var(--color-accent)]/10 text-[var(--color-accent)]",
-  OCCUPIED: "bg-[var(--color-warning)]/10 text-[var(--color-warning)]",
-  MAINTENANCE: "bg-slate-200 text-slate-600",
-  OFFLINE: "bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
+  ACTIVE: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
+  INACTIVE: "bg-slate-200 text-slate-600",
+  BANNED: "bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
   VERIFIED: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
   PENDING: "bg-[var(--color-warning)]/10 text-[var(--color-warning)]",
   UNVERIFIED: "bg-[var(--color-warning)]/10 text-[var(--color-warning)]",
   REJECTED: "bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
-  ACTIVE: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
   COMPLETED: "bg-slate-200 text-slate-600",
-  REASSIGNED: "bg-[var(--color-accent)]/10 text-[var(--color-accent)]",
   CANCELLED: "bg-slate-200 text-slate-600",
-  NO_SHOW: "bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
+  REASSIGNED: "bg-[var(--color-accent)]/10 text-[var(--color-accent)]",
+  EXPIRED: "bg-slate-200 text-slate-600",
+  CHECKED_IN: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
+  CHECKED_OUT: "bg-slate-200 text-slate-600",
+  REVOKED: "bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
+  SUCCESS: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
+  FAILED: "bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
+  INITIATED: "bg-[var(--color-warning)]/10 text-[var(--color-warning)]",
 };
 
 // Payment model: clients pay per day booked, at the workstation's flat
-// daily rate. No subscriptions, no bulk/volume discount. Per the backend
-// spec, the WALLET IS THE ONLY WAY TO PAY FOR A BOOKING — there is no
-// direct card payment at checkout. Money enters the wallet two ways only:
-// Paystack online funding, or a Super Admin cash-funding credit.
+// daily rate. No subscriptions, no bulk/volume discount. The wallet is the
+// only way to pay for a booking. Money enters the wallet two ways —
+// Paystack online funding, or a Super Admin cash-funding credit — matching
+// their WalletTransactionType enum exactly (schema.prisma).
 export const WALLET_TRANSACTION_TYPE = {
-  DEPOSIT: "DEPOSIT", // online funding via Paystack
-  CASH_FUNDING: "CASH_FUNDING", // Super Admin credits a wallet for an authorized cash payment
-  BOOKING_DEBIT: "BOOKING_DEBIT", // wallet debited to pay for a booking
-  CANCELLATION_CREDIT: "CANCELLATION_CREDIT", // non-withdrawable credit from a cancelled future date
+  PAYSTACK_FUNDING: "PAYSTACK_FUNDING",
+  CASH_FUNDING: "CASH_FUNDING",
+  BOOKING_DEBIT: "BOOKING_DEBIT",
+  BOOKING_CANCELLATION_CREDIT: "BOOKING_CANCELLATION_CREDIT",
+  ADMIN_ADJUSTMENT_CREDIT: "ADMIN_ADJUSTMENT_CREDIT",
+  ADMIN_ADJUSTMENT_DEBIT: "ADMIN_ADJUSTMENT_DEBIT",
 };

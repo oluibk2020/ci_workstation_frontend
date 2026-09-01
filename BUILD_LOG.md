@@ -91,6 +91,232 @@ src/
 
 ## Build Log
 
+### 2026-08-31 (continued) — Phase 3: Booking
+
+Scope: real booking creation and management, using the confirmed exact
+payload shapes and business rules from the backend code review — the
+first UI built after the backend gaps (cancellation/reassignment) were
+patched, so it can actually exercise them for real.
+
+- [x] `publicUserService.js` — calls the reconstructed
+      `/public/users/check-email` endpoint (see `docs/PATCH_NOTES.md`).
+      Used to check a gift recipient's email *before* submitting, since
+      the backend's real "not registered" error gets flattened into a
+      generic 500 by their still-stub error middleware and loses its
+      specific meaning by the time it reaches the frontend — checking
+      first avoids ever hitting that ambiguous case.
+- [x] `utils/businessDate.js` — mirrors the backend's
+      `helper/businessDate.js` exactly (same weekday names, same UTC
+      iteration) so the booking form can gray out non-operating days and
+      count business days without a round trip. Backend remains the final
+      authority — this is UX only.
+- [x] `BookWorkstationPage.jsx` (`/client/book`, also used for
+      `/client/gift-a-seat`) — full flow: branch → workstation type →
+      self-or-gift → continuous-date-range or specific-days → live
+      availability check (`GET /availability`) → seat selection (only
+      seats free across *every* requested date are selectable) → price
+      preview → submit. Handles both `bookingFor` values and the
+      exists-vs-invite branches of gifting.
+- [x] `MyBookingsPage.jsx` (`/client/bookings`) — lists bookings with
+      per-date status (a single booking can show one date `COMPLETED`,
+      another `ACTIVE`, another `CANCELLED` simultaneously — matches the
+      real `BookingDate` model). Cancel and Reassign actions per active
+      date, wired to the newly-patched backend endpoints.
+- [x] Routes wired in `App.jsx`, replacing the `ComingSoon` placeholders
+      for `/client/book`, `/client/bookings`, `/client/gift-a-seat`.
+- [x] Production build + lint verified clean (0 errors).
+
+**Known constraint, not a bug:** testing a real booking end-to-end
+requires actual wallet balance, which requires either a real Paystack key
+(not configured yet) or the still-unbuilt cash-funding endpoint. The UI
+is honest about insufficient balance (shows it, doesn't block submission
+client-side) rather than pretending this is solved.
+
+**Not done:** the review-and-confirm screen doesn't yet show anything for
+already-cancelled/reassigned history beyond the per-date badges on the
+list — a dedicated "audit trail" view of past reassignments would be a
+reasonable next addition, not attempted here.
+
+---
+
+### 2026-08-31 (continued) — Frontend wired to the real backend
+
+Scope: replace mocked auth/catalog/wallet with real network calls against
+the now-running backend (confirmed live per `docs/PATCH_NOTES.md`), for
+every flow that's actually implemented server-side.
+
+- [x] `AuthContext`/`authService` — real register/login/me. Caught and
+      worked around a real backend inconsistency: their `register`
+      controller nests the response one level deeper than `login`'s
+      (`{user: {user, token, qrCode}}` vs `{user, token}`) —
+      `normalizeAuthResult()` handles both shapes so nothing downstream
+      has to know.
+- [x] `CatalogContext`/`branchService`/`workstationService`/`seatService`
+      — real Branch → Workstation → Seat reads, admin mutations call only
+      the endpoints that actually exist (no branch update/delete, no
+      workstation/seat delete — none of those routes exist on their side).
+  - **Bug fixed:** seat endpoints require auth on their backend
+    (`routes/seatRoute.js`), but seats were being fetched unconditionally
+    — a 401 for anyone logged out was corrupting the whole catalog's error
+    state even though branches/workstations (genuinely public) loaded
+    fine. Split seat loading out to only run while authenticated, re-fires
+    automatically on login. Public `WorkstationsPage` now shows a clean
+    "log in to see live seats" state instead of an error.
+- [x] `WalletContext`/`walletService` — real balance + transaction history
+      reads. `deposit` now throws rather than faking a balance change —
+      no Paystack key configured yet, and cash funding still has no real
+      endpoint (see `docs/BACKEND_CODE_REVIEW.md` §2).
+- [x] `AdminClientsPage`/`adminUserService` — real user list, role change,
+      ban/reactivate against `PATCH /admin/users/:id/{role,status}`. The
+      "Credit Wallet" action was removed (no real endpoint exists for it).
+- [x] New `QRPage.jsx` (`/client/qr`) — the one backend feature that's
+      fully implemented and needs no external credentials to use.
+      Documented a real UX constraint while building it: `GET /qr/me`
+      never returns the scannable token, only `generate()` does, and
+      generating always revokes whatever QR existed before. The page is
+      built around that constraint rather than hiding it.
+- [x] `api.js` — updated to handle their error middleware actually being a
+      stub: every failure (auth or otherwise) currently comes back as a
+      flat 500 with shape `{error: "..."}`, not the documented
+      `{success, message, code}`. `apiFetch` now falls back to `.error`,
+      attaches the real HTTP status, and flags `isGenericServerError` so
+      callers can be honest about what they don't know instead of
+      guessing a specific reason.
+- [x] `LoginPage`/`RegisterPage` — removed dead `NO_ACCOUNT`/`ACCOUNT_BANNED`
+      code checks left over from the old mocked auth (real backend never
+      sets `.code` on these paths). Error copy now says plainly that the
+      backend doesn't yet return specific failure reasons, rather than
+      pretending to know why a login or registration failed.
+- [x] `.env` created from `.env.example`, pointing at
+      `http://localhost:1524/api/v1`.
+- [x] Production build + lint verified clean (0 errors).
+
+**Not done:** booking creation/list UI (Phase 3) — the backend supports it
+now, but building the actual date-picker/continuous-vs-flexible booking
+flow is a bigger, separate piece of work, not "wiring an existing page."
+Flagging it as the natural next candidate.
+
+---
+
+### 2026-08-31 — Live backend wiring + backend gaps implemented
+
+Two-part session, prompted by the backend owner confirming their server
+boots against a real database (`prisma migrate dev` succeeded, `npm run
+dev` → "Workstation API running on port 1524").
+
+**Part 1 — backend gaps implemented** (in the backend repo, not this
+one — see the delivered `backend_wkstation` zip and its `PATCH_NOTES.md`):
+- `cancellationService.js` and `reassignmentService.js` — were empty
+  0-line stubs, now contain real logic matching the functional spec
+  (cancel → non-withdrawable wallet credit to the booker, never cash;
+  reassignment capped at 3 operations/month, atomic, all-or-nothing).
+  Wired to new `POST /bookings/:bookingId/cancel` and
+  `POST /bookings/:bookingId/reassign` routes.
+- `checkinService.checkIn` — added the verification gate the spec
+  required but the code never enforced (blocks a person's very first
+  check-in unless `verificationStatus === VERIFIED`).
+- All three syntax-checked and boot-tested (stub Prisma client, same
+  method as the first backend patch) — `app.js` still loads with zero
+  `require()` errors. **Not tested against a real database from this
+  session** — flagged clearly in `PATCH_NOTES.md` for the backend owner
+  to verify directly.
+
+**Part 2 — frontend wired to the real, running backend:**
+- `AuthContext` — real `login`/`register`/`me` via `authService`, JWT
+  persisted and sent on every request. Handles a real backend quirk
+  found in the process: their `register` endpoint double-wraps its
+  response one level deeper than `login` does (variable-naming collision
+  in their controller) — normalized so the rest of the app never has to
+  know.
+- `CatalogContext` — branches/workstations/seats now load for real on
+  mount. Admin mutations call only the endpoints that actually exist
+  server-side: branch create-only (no update/delete route exists yet);
+  workstation and seat create/update/status all exist and are wired.
+  Decimal fields (`pricePerDay`) normalized from the strings Prisma
+  serializes them as.
+- `WalletContext` — balance and transaction history are real
+  (`GET /wallet`, `GET /wallet/transactions`). `deposit` deliberately
+  throws rather than faking a balance change — funding can't complete
+  end-to-end yet (no Paystack keys configured, and cash funding has no
+  endpoint at all).
+- New `adminUserService.js`, `branchService.js`, `seatService.js` — real
+  confirmed endpoints. `UsersContext` (the old mocked account directory)
+  is fully retired — `AdminClientsPage` now calls `adminUserService`
+  directly with real loading/error states.
+- `bookingService.js` — `cancel`/`reassign` re-enabled now that Part 1
+  gives them somewhere real to call.
+- `.env.example` added (`VITE_API_BASE_URL=http://localhost:1524/api/v1`).
+- Production build + lint verified clean (0 errors).
+
+**Still not live:** Booking itself (Phase 3 UI was never built), QR/
+check-in screens (Phase 5), wallet funding (blocked on Paystack config +
+the cash-funding endpoint that doesn't exist). Cancellation/reassignment
+now have a real backend to call whenever Booking is eventually built.
+
+---
+
+### 2026-08-31 — Backend code review: applied schema-confirmed corrections
+
+Scope: the backend team's actual GitHub repo (zip) was reviewed line by
+line — Prisma schema, routes, controllers, services. Full findings in the
+new `docs/BACKEND_CODE_REVIEW.md`, which supersedes `BACKEND_ALIGNMENT.md`
+wherever the two disagree (real code beats spec prose). **The backend
+itself cannot currently start** (missing `publicUserRoute.js`, excluded by
+their own `.gitignore`) and several documented rules aren't implemented
+yet (cancellation, reassignment, verification-gated check-in, cash
+funding) — so this remains schema/contract alignment only, not live
+integration.
+
+- [x] `constants.js` — every enum rewritten to match `schema.prisma`
+      exactly: `SEAT_STATUS`/`WORKSTATION_STATUS`/`BRANCH_STATUS`
+      simplified from a 5-value guess down to their real `ACTIVE/INACTIVE`;
+      added `USER_STATUS` (`ACTIVE/BANNED`); `BOOKING_STATUS` simplified
+      to their real 4 values (no BOOKED/VERIFIED/REASSIGNED/NO_SHOW at
+      this level — reassignment is a separate table); `BOOKING_DATE_STATUS`
+      corrected; wallet ledger types renamed to their real
+      `PAYSTACK_FUNDING/CASH_FUNDING/BOOKING_DEBIT/BOOKING_CANCELLATION_CREDIT/
+      ADMIN_ADJUSTMENT_CREDIT/ADMIN_ADJUSTMENT_DEBIT`; `BOOKED_FOR_TYPE`
+      renamed to `BOOKING_FOR` with real values `SELF/OTHER` (not `GUEST`).
+- [x] `CatalogContext.jsx` — `openTime`/`closeTime` → `openingTime`/
+      `closingTime`; operating days now full weekday names (`"MONDAY"` not
+      `"MON"`); `dailyRate` → `pricePerDay`; **removed the seat spec fields
+      entirely** (`externalMonitor`, `powerOutlets`, `internetMbps`) — they
+      don't exist anywhere in the real schema. A seat is just a label
+      (`seatId`) and a status.
+- [x] `SeatFormModal`, `SeatCard` rewritten to the real minimal shape.
+      `BranchFormModal`, `AdminBranchesPage`, `AdminWorkstationsPage`,
+      `AdminSeatsPage`, `StaffSeatsPage`, public `WorkstationsPage`,
+      `PricingPage`, `LandingPage`, `BranchesPage` all updated to match.
+- [x] `UsersContext` — added `status` (`ACTIVE/BANNED`) and `setStatus`,
+      confirmed real (`PATCH /admin/users/:userId/status`,
+      `adminService.js`). `AuthContext.login` now blocks banned accounts.
+- [x] `AdminClientsPage` — added Ban/Reactivate action; both it and the
+      role-change action are now hidden on the admin's own row (their
+      `adminService.js` explicitly disallows self-modification).
+- [x] Service stub files corrected to real, confirmed endpoints:
+  - `qrService.js` — real paths are `/qr/generate`, `/qr/me`,
+    `/qr/revoke`, `/qr/public/:token` (not `/qr/verify`).
+  - `checkinService.js` — path is singular `/checkin` (not `/checkins`);
+    keyed by `bookingDateId`, not `bookingId`; `targetUserId` optional
+    (self-check-in is allowed, not staff-only as the spec implied).
+  - `walletService.js` — removed the guessed `/wallet/fund` endpoint;
+    wallet only exposes reads. Funding is a Payments concern.
+  - New `paymentService.js` — the real Paystack flow
+    (`/payments/initialize`, `/payments/verify/:reference`). Documented
+    that their webhook can't currently credit the wallet end-to-end (see
+    code review §1).
+  - `bookingService.js` — exact real payload shape (`bookingFor`,
+    `beneficiaryEmail`/`beneficiaryName`/`createBeneficiaryAccount`,
+    `type: CONTINUOUS|FLEXIBLE`, etc.). `cancel`/`reassign` commented out
+    — no endpoint exists for either yet.
+- [x] Production build + lint verified clean (0 errors).
+
+**Not changed:** no live network calls wired up anywhere — there's still
+no backend to integrate against (it can't start), so everything above is
+contract alignment for whenever that's fixed on their end.
+
+---
+
 ### 2026-08-24 — Decision: follow the backend on both flagged conflicts
 
 Resolves the two items flagged in the previous session's entry. Full

@@ -60,7 +60,7 @@ export default function PricingPage() {
                   <td className="px-5 py-3 text-slate-500">{wk.name}</td>
                   <td className="px-5 py-3 text-slate-500">{getSeatsForWorkstation(wk.id).length}</td>
                   <td className="px-5 py-3 text-right font-mono-tight font-semibold text-[var(--color-primary)]">
-                    ₦{wk.dailyRate.toLocaleString()}
+                    ₦{wk.pricePerDay.toLocaleString()}
                   </td>
                 </tr>
               ))}

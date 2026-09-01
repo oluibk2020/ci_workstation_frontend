@@ -9,6 +9,7 @@ export const NAV_CONFIG = {
   [ROLES.CLIENT]: [
     { to: "/client/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/client/wallet", label: "My Wallet", icon: Wallet },
+    { to: "/client/qr", label: "My QR Pass", icon: QrCode },
     { to: "/client/book", label: "Book Workstation", icon: CalendarPlus },
     { to: "/client/bookings", label: "My Bookings", icon: ListChecks },
     { to: "/client/gift-a-seat", label: "Gift a Seat", icon: Gift },

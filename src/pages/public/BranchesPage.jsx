@@ -20,7 +20,7 @@ export default function BranchesPage() {
         {branches.map((branch) => {
           const workstations = getWorkstationsForBranch(branch.id);
           const seatCount = workstations.reduce((sum, wk) => sum + getSeatsForWorkstation(wk.id).length, 0);
-          const rates = workstations.map((wk) => wk.dailyRate);
+          const rates = workstations.map((wk) => wk.pricePerDay);
           const minRate = rates.length ? Math.min(...rates) : 0;
 
           return (
@@ -31,7 +31,7 @@ export default function BranchesPage() {
               </div>
               <p className="mt-3 text-lg font-semibold text-[var(--color-primary)]">{branch.address}</p>
               <p className="mt-1 font-mono-tight text-xs text-slate-400">
-                Open {branch.openTime}–{branch.closeTime} · {branch.operatingDays?.join(", ")}
+                Open {branch.openingTime}–{branch.closingTime} · {branch.operatingDays?.join(", ")}
               </p>
               <div className="mt-4 flex items-center justify-between border-t border-[var(--color-line)] pt-4 text-sm text-slate-500">
                 <span>{seatCount} seat{seatCount === 1 ? "" : "s"}</span>

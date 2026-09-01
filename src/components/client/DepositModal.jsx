@@ -7,6 +7,7 @@ const QUICK_AMOUNTS = [5000, 10000, 20000, 50000];
 export default function DepositModal({ open, onClose, onDeposit }) {
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   function handleQuickPick(value) {
     setAmount(String(value));
@@ -17,15 +18,16 @@ export default function DepositModal({ open, onClose, onDeposit }) {
     const value = Number(amount);
     if (!value || value <= 0) return;
     setSubmitting(true);
-    // TODO: replace with a real Paystack checkout; only credit the wallet
-    // after the backend verifies the payment with Paystack (backend spec
-    // §8.1). This is the only way to fund the wallet online — the wallet
-    // itself is the only way a booking gets paid for.
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    onDeposit(value);
-    setSubmitting(false);
-    setAmount("");
-    onClose();
+    setError("");
+    try {
+      await onDeposit(value);
+      setAmount("");
+      onClose();
+    } catch (err) {
+      setError(err.message || "Couldn't process that deposit.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -69,6 +71,8 @@ export default function DepositModal({ open, onClose, onDeposit }) {
           Your wallet balance never expires — deposit as much or as little as you like, whenever you
           like.
         </p>
+
+        {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>

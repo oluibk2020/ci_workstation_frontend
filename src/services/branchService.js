@@ -1,13 +1,9 @@
 import { apiFetch } from "./api";
 
-// Not yet called by CatalogContext (which is mocked). Wire these up once
-// the real backend's Branch endpoints exist (see backend spec §7, §16 —
-// service is named BranchService there). Branch creation/editing must
-// remain Super Admin-only, enforced server-side.
+// Confirmed real endpoints (routes/branchRoute.js, routes/adminBranchRoute.js).
+// NOTE: only GET (public) and POST (Super Admin create) exist — there is
+// no update or delete route for a branch anywhere on the backend yet.
 export const branchService = {
   list: () => apiFetch("/branches"),
-  get: (id) => apiFetch(`/branches/${id}`),
-  create: (payload) => apiFetch("/branches", { method: "POST", body: payload }),
-  update: (id, payload) => apiFetch(`/branches/${id}`, { method: "PATCH", body: payload }),
-  remove: (id) => apiFetch(`/branches/${id}`, { method: "DELETE" }),
+  create: (payload) => apiFetch("/admin/branches", { method: "POST", body: payload }),
 };

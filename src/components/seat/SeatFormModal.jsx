@@ -6,16 +6,13 @@ import { useCatalog } from "../../context/CatalogContext";
 
 function emptyForm(defaultWorkstationId) {
   return {
-    code: "",
+    seatId: "",
     workstationId: defaultWorkstationId || "",
-    externalMonitor: false,
-    powerOutlets: 2,
-    internetMbps: 300,
-    status: SEAT_STATUS.AVAILABLE,
+    status: SEAT_STATUS.ACTIVE,
   };
 }
 
-export default function SeatFormModal({ open, onClose, onSubmit, initialData }) {
+export default function SeatFormModal({ open, onClose, onSubmit, initialData, submitting }) {
   const { workstations, getBranchName } = useCatalog();
   const isEdit = !!initialData;
   const [form, setForm] = useState(emptyForm(workstations[0]?.id));
@@ -28,91 +25,48 @@ export default function SeatFormModal({ open, onClose, onSubmit, initialData }) 
   }, [open, initialData]);
 
   function update(field) {
-    return (e) => {
-      const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
-      setForm((f) => ({ ...f, [field]: value }));
-    };
+    return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
   function handleSubmit(e) {
     e.preventDefault();
-    onSubmit({
-      ...form,
-      powerOutlets: Number(form.powerOutlets) || 0,
-      internetMbps: Number(form.internetMbps) || 0,
-    });
-    onClose();
+    onSubmit(form);
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? "Edit seat" : "New seat"} maxWidth="max-w-xl">
+    <Modal open={open} onClose={onClose} title={isEdit ? "Edit seat" : "New seat"}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-slate-700">Seat code</label>
-            <input
-              required
-              value={form.code}
-              onChange={update("code")}
-              className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
-              placeholder="WS-14"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-slate-700">Workstation type</label>
-            <select
-              required
-              value={form.workstationId}
-              onChange={update("workstationId")}
-              className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] bg-white px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
-            >
-              <option value="" disabled>
-                Select a workstation type
-              </option>
-              {workstations.map((wk) => (
-                <option key={wk.id} value={wk.id}>
-                  {wk.name} — {getBranchName(wk.branchId)} (₦{wk.dailyRate.toLocaleString()}/day)
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-slate-700">Power outlets</label>
-            <input
-              type="number"
-              min="0"
-              value={form.powerOutlets}
-              onChange={update("powerOutlets")}
-              className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-slate-700">Internet (Mbps)</label>
-            <input
-              type="number"
-              min="0"
-              step="50"
-              value={form.internetMbps}
-              onChange={update("internetMbps")}
-              className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between rounded-lg border border-[var(--color-line)] px-3 py-2.5">
-          <label htmlFor="externalMonitor" className="text-sm font-medium text-slate-700">
-            External monitor available
-          </label>
+        <div>
+          <label className="text-sm font-medium text-slate-700">Seat label</label>
           <input
-            id="externalMonitor"
-            type="checkbox"
-            checked={form.externalMonitor}
-            onChange={update("externalMonitor")}
-            className="h-4 w-4 accent-[var(--color-accent)]"
+            required
+            value={form.seatId}
+            onChange={update("seatId")}
+            className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
+            placeholder="e.g. A1"
           />
+          <p className="mt-1.5 text-xs text-slate-400">
+            A short label unique within its workstation type (e.g. "A1", "A2").
+          </p>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-slate-700">Workstation type</label>
+          <select
+            required
+            value={form.workstationId}
+            onChange={update("workstationId")}
+            className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] bg-white px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
+          >
+            <option value="" disabled>
+              Select a workstation type
+            </option>
+            {workstations.map((wk) => (
+              <option key={wk.id} value={wk.id}>
+                {wk.name} — {getBranchName(wk.branchId)} (₦{wk.pricePerDay.toLocaleString()}/day)
+              </option>
+            ))}
+          </select>
         </div>
 
         {isEdit && (
@@ -136,7 +90,9 @@ export default function SeatFormModal({ open, onClose, onSubmit, initialData }) 
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">{isEdit ? "Save changes" : "Create seat"}</Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? "Saving..." : isEdit ? "Save changes" : "Create seat"}
+          </Button>
         </div>
       </form>
     </Modal>

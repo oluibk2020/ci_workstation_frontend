@@ -50,7 +50,7 @@ export default function StaffSeatsPage() {
             seat={seat}
             workstationName={seat.workstationName}
             branchName={seat.branchName}
-            dailyRate={seat.dailyRate}
+            pricePerDay={seat.pricePerDay}
             canManage={false}
           />
         ))}

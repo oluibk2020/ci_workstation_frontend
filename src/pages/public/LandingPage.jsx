@@ -170,21 +170,18 @@ export default function LandingPage() {
           {showcaseWorkstations.map((ws) => (
             <div key={ws.id} className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white">
               <div className="flex h-32 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 font-mono-tight text-sm text-slate-400">
-                {ws.code}
+                Seat {ws.seatId}
               </div>
               <div className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    {ws.code} · {ws.branchName}
+                    Seat {ws.seatId} · {ws.branchName}
                   </p>
                   <span className="h-2 w-2 rounded-full bg-[var(--color-success)] status-dot" />
                 </div>
                 <p className="mt-2 font-semibold text-[var(--color-primary)]">{ws.workstationName}</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {ws.externalMonitor ? "External monitor available" : "No external monitor"}
-                </p>
                 <p className="mt-4 font-mono-tight text-lg font-bold text-[var(--color-primary)]">
-                  ₦{ws.dailyRate.toLocaleString()}/day
+                  ₦{ws.pricePerDay.toLocaleString()}/day
                 </p>
               </div>
             </div>
@@ -211,7 +208,7 @@ export default function LandingPage() {
                 <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
                   {ws.branchName}
                 </p>
-                <p className="mt-2 font-mono-tight text-2xl font-bold text-white">₦{ws.dailyRate.toLocaleString()}/day</p>
+                <p className="mt-2 font-mono-tight text-2xl font-bold text-white">₦{ws.pricePerDay.toLocaleString()}/day</p>
                 <p className="mt-1 text-sm text-slate-400">{ws.workstationName}</p>
               </div>
             ))}

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { ROLES, VERIFICATION_STATUS } from "../utils/constants";
+import { ROLES, VERIFICATION_STATUS, USER_STATUS } from "../utils/constants";
 
 /**
  * UsersContext
@@ -33,13 +33,13 @@ function nextId() {
 }
 
 const SEED_USERS = [
-  { id: "user-1", name: "John Doe", email: "john@demo.com", role: ROLES.CLIENT, verificationStatus: VERIFICATION_STATUS.VERIFIED },
-  { id: "user-2", name: "Ada Obi", email: "ada@demo.com", role: ROLES.CLIENT, verificationStatus: VERIFICATION_STATUS.UNVERIFIED },
-  { id: "user-3", name: "Peter James", email: "peter@demo.com", role: ROLES.CLIENT, verificationStatus: VERIFICATION_STATUS.UNVERIFIED },
+  { id: "user-1", name: "John Doe", email: "john@demo.com", role: ROLES.CLIENT, status: USER_STATUS.ACTIVE, verificationStatus: VERIFICATION_STATUS.VERIFIED },
+  { id: "user-2", name: "Ada Obi", email: "ada@demo.com", role: ROLES.CLIENT, status: USER_STATUS.ACTIVE, verificationStatus: VERIFICATION_STATUS.UNVERIFIED },
+  { id: "user-3", name: "Peter James", email: "peter@demo.com", role: ROLES.CLIENT, status: USER_STATUS.ACTIVE, verificationStatus: VERIFICATION_STATUS.UNVERIFIED },
   // Seeded bootstrap admin — not surfaced anywhere in the UI. Needed to
   // demo the admin dashboard until the backend team defines real admin
   // provisioning. Not a pattern ("admin@...") — a specific fixed account.
-  { id: "user-admin", name: "Charis Admin", email: "admin@charis.dev", role: ROLES.ADMIN, verificationStatus: VERIFICATION_STATUS.VERIFIED },
+  { id: "user-admin", name: "Charis Admin", email: "admin@charis.dev", role: ROLES.ADMIN, status: USER_STATUS.ACTIVE, verificationStatus: VERIFICATION_STATUS.VERIFIED },
 ];
 
 export function UsersProvider({ children }) {
@@ -51,13 +51,14 @@ export function UsersProvider({ children }) {
   );
 
   // The only way a new account is created through the public flow —
-  // always CLIENT, always UNVERIFIED.
+  // always CLIENT, always ACTIVE, always UNVERIFIED.
   const registerClient = useCallback(({ name, email }) => {
     const record = {
       id: nextId(),
       name,
       email,
       role: ROLES.CLIENT,
+      status: USER_STATUS.ACTIVE,
       verificationStatus: VERIFICATION_STATUS.UNVERIFIED,
     };
     setUsers((prev) => [...prev, record]);
@@ -70,11 +71,19 @@ export function UsersProvider({ children }) {
     setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
   }, []);
 
+  // Admin-only action, confirmed real: PATCH /admin/users/:userId/status
+  // (adminService.js). Bans/reactivates an account. Their backend
+  // disallows an admin changing their own status — enforce the same rule
+  // here at the UI level (AdminClientsPage hides the action on your own row).
+  const setStatus = useCallback((userId, status) => {
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status } : u)));
+  }, []);
+
   const setVerificationStatus = useCallback((userId, status) => {
     setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, verificationStatus: status } : u)));
   }, []);
 
-  const value = { users, findByEmail, registerClient, setRole, setVerificationStatus };
+  const value = { users, findByEmail, registerClient, setRole, setStatus, setVerificationStatus };
 
   return <UsersContext.Provider value={value}>{children}</UsersContext.Provider>;
 }

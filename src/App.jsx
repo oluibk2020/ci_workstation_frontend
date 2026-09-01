@@ -21,6 +21,9 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import ClientDashboardPage from "./pages/client/ClientDashboardPage";
 import WalletPage from "./pages/client/WalletPage";
+import QRPage from "./pages/client/QRPage";
+import BookWorkstationPage from "./pages/client/BookWorkstationPage";
+import MyBookingsPage from "./pages/client/MyBookingsPage";
 import StaffDashboardPage from "./pages/staff/StaffDashboardPage";
 import StaffSeatsPage from "./pages/staff/StaffSeatsPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
@@ -58,9 +61,10 @@ export default function App() {
         <Route element={<DashboardLayout />}>
           <Route path="/client/dashboard" element={<ClientDashboardPage />} />
           <Route path="/client/wallet" element={<WalletPage />} />
-          <Route path="/client/book" element={<ComingSoon title="Book a workstation" phase="Phase 3 — Booking" />} />
-          <Route path="/client/bookings" element={<ComingSoon title="My bookings" phase="Phase 3 — Booking" />} />
-          <Route path="/client/gift-a-seat" element={<ComingSoon title="Gift a seat" phase="Phase 3 — Booking" />} />
+          <Route path="/client/qr" element={<QRPage />} />
+          <Route path="/client/book" element={<BookWorkstationPage />} />
+          <Route path="/client/bookings" element={<MyBookingsPage />} />
+          <Route path="/client/gift-a-seat" element={<BookWorkstationPage />} />
           <Route path="/client/sessions" element={<ComingSoon title="My sessions" phase="Phase 6 — Sessions" />} />
           <Route path="/client/transactions" element={<ComingSoon title="Payment history" phase="Phase 4 — Payments" />} />
           <Route path="/client/notifications" element={<ComingSoon title="Notifications" phase="Phase 8 — Real-Time" />} />

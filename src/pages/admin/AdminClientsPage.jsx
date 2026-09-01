@@ -1,34 +1,67 @@
-import { useState, useMemo } from "react";
-import { Search, ShieldCheck, ShieldOff, Wallet } from "lucide-react";
-import { useUsers } from "../../context/UsersContext";
-import { useWallet } from "../../context/WalletContext";
+import { useState, useEffect, useCallback } from "react";
+import { Search, ShieldCheck, ShieldOff, Ban, RotateCcw, Loader2 } from "lucide-react";
+import { adminUserService } from "../../services/adminUserService";
+import { useAuth } from "../../context/AuthContext";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
-import Modal from "../../components/common/Modal";
-import { ROLES } from "../../utils/constants";
+import { ROLES, USER_STATUS } from "../../utils/constants";
 
+// Wired to the real backend — GET/PATCH /api/v1/admin/users (confirmed
+// working set of endpoints; see docs/BACKEND_CODE_REVIEW.md). Wallet cash
+// crediting was intentionally dropped from this page: their schema
+// supports a CASH_FUNDING ledger type, but no endpoint anywhere
+// implements it yet (see docs/PATCH_NOTES.md) — nothing real to wire it to.
 export default function AdminClientsPage() {
-  const { users, setRole } = useUsers();
-  const { creditUserWallet } = useWallet();
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [creditingUser, setCreditingUser] = useState(null);
-  const [creditAmount, setCreditAmount] = useState("");
+  const [busyUserId, setBusyUserId] = useState(null);
 
-  const rows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return users
-      .filter((u) => u.role !== ROLES.ADMIN)
-      .filter((u) => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
-  }, [users, query]);
+  const loadUsers = useCallback(async (search) => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const { users: list } = await adminUserService.list({ search });
+      setUsers(list);
+    } catch (err) {
+      setError(err.message || "Couldn't load users.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  function handleCreditSubmit(e) {
-    e.preventDefault();
-    const value = Number(creditAmount);
-    if (!value || value <= 0 || !creditingUser) return;
-    creditUserWallet(creditingUser.id, value, `Cash payment received in person, credited by admin`);
-    setCreditingUser(null);
-    setCreditAmount("");
+  useEffect(() => {
+    const timeout = setTimeout(() => loadUsers(query), 300);
+    return () => clearTimeout(timeout);
+  }, [query, loadUsers]);
+
+  async function handleRoleChange(userId, role) {
+    setBusyUserId(userId);
+    try {
+      const { user: updated } = await adminUserService.updateRole(userId, role);
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...updated } : u)));
+    } catch (err) {
+      setError(err.message || "Couldn't update role.");
+    } finally {
+      setBusyUserId(null);
+    }
   }
+
+  async function handleStatusChange(userId, status) {
+    setBusyUserId(userId);
+    try {
+      const { user: updated } = await adminUserService.updateStatus(userId, status);
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...updated } : u)));
+    } catch (err) {
+      setError(err.message || "Couldn't update status.");
+    } finally {
+      setBusyUserId(null);
+    }
+  }
+
+  const rows = users.filter((u) => u.role !== ROLES.ADMIN);
 
   return (
     <div className="space-y-6">
@@ -36,8 +69,7 @@ export default function AdminClientsPage() {
         <h1 className="text-xl font-bold text-[var(--color-primary)]">Clients</h1>
         <p className="text-sm text-slate-500">
           Everyone signs up as a Client. Promote someone to Staff here if they need to verify QR
-          codes and check people in — there's no self-service way to become Staff. You can also
-          credit a client's wallet for an authorized cash payment received in person.
+          codes and check people in, or ban an account that's misusing the platform.
         </p>
       </div>
 
@@ -51,6 +83,12 @@ export default function AdminClientsPage() {
         />
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 p-4 text-sm text-[var(--color-danger)]">
+          {error}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white">
         <table className="w-full text-sm">
           <thead>
@@ -58,6 +96,7 @@ export default function AdminClientsPage() {
               <th className="px-5 py-3">Name</th>
               <th className="px-5 py-3">Email</th>
               <th className="px-5 py-3">Role</th>
+              <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Verification</th>
               <th className="px-5 py-3 text-right">Actions</th>
             </tr>
@@ -71,26 +110,44 @@ export default function AdminClientsPage() {
                   <Badge status={u.role === ROLES.MANAGER ? "VERIFIED" : "BOOKED"}>{u.role}</Badge>
                 </td>
                 <td className="px-5 py-3">
+                  <Badge status={u.status === USER_STATUS.BANNED ? "BANNED" : "ACTIVE"}>{u.status}</Badge>
+                </td>
+                <td className="px-5 py-3">
                   <Badge status={u.verificationStatus}>{u.verificationStatus}</Badge>
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex justify-end gap-2">
-                    {u.role === ROLES.CLIENT && (
-                      <Button size="sm" variant="ghost" onClick={() => setCreditingUser(u)}>
-                        <Wallet size={14} />
-                        Credit Wallet
-                      </Button>
-                    )}
-                    {u.role === ROLES.CLIENT ? (
-                      <Button size="sm" variant="outline" onClick={() => setRole(u.id, ROLES.MANAGER)}>
-                        <ShieldCheck size={14} />
-                        Make Staff
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="ghost" onClick={() => setRole(u.id, ROLES.CLIENT)}>
-                        <ShieldOff size={14} />
-                        Revert to Client
-                      </Button>
+                    {u.id !== currentUser?.id && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={busyUserId === u.id}
+                          onClick={() =>
+                            handleStatusChange(u.id, u.status === USER_STATUS.BANNED ? USER_STATUS.ACTIVE : USER_STATUS.BANNED)
+                          }
+                        >
+                          {busyUserId === u.id ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : u.status === USER_STATUS.BANNED ? (
+                            <RotateCcw size={14} />
+                          ) : (
+                            <Ban size={14} />
+                          )}
+                          {u.status === USER_STATUS.BANNED ? "Reactivate" : "Ban"}
+                        </Button>
+                        {u.role === ROLES.CLIENT ? (
+                          <Button size="sm" variant="outline" disabled={busyUserId === u.id} onClick={() => handleRoleChange(u.id, ROLES.MANAGER)}>
+                            <ShieldCheck size={14} />
+                            Make Staff
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" disabled={busyUserId === u.id} onClick={() => handleRoleChange(u.id, ROLES.CLIENT)}>
+                            <ShieldOff size={14} />
+                            Revert to Client
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </td>
@@ -99,37 +156,9 @@ export default function AdminClientsPage() {
           </tbody>
         </table>
 
-        {rows.length === 0 && <p className="p-5 text-sm text-slate-400">No accounts match your search.</p>}
+        {isLoading && <p className="p-5 text-sm text-slate-400">Loading...</p>}
+        {!isLoading && rows.length === 0 && <p className="p-5 text-sm text-slate-400">No accounts match your search.</p>}
       </div>
-
-      <Modal open={!!creditingUser} onClose={() => setCreditingUser(null)} title={`Credit ${creditingUser?.name}'s wallet`}>
-        <form onSubmit={handleCreditSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-slate-700">Amount received in cash (₦)</label>
-            <input
-              type="number"
-              min="100"
-              step="100"
-              required
-              autoFocus
-              value={creditAmount}
-              onChange={(e) => setCreditAmount(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
-              placeholder="e.g. 20000"
-            />
-          </div>
-          <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-            This is only for authorized cash payments already received in person. It creates a
-            CASH_FUNDING ledger entry and must be logged in the audit trail once the backend exists.
-          </p>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setCreditingUser(null)}>
-              Cancel
-            </Button>
-            <Button type="submit">Credit wallet</Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }
