@@ -77,6 +77,20 @@ export function AuthProvider({ children }) {
     return stored;
   }, []);
 
+  // Same shape as login's response (flat { user, token }) — no register-
+  // style extra nesting to work around here. Handles both "log in with an
+  // existing Google-linked account" and "silently register a brand new
+  // one" — the backend decides which happened, the frontend doesn't need
+  // to know or care.
+  const loginWithGoogle = useCallback(async (idToken) => {
+    const result = await authService.googleLogin(idToken);
+    const { user: loggedInUser, token } = normalizeAuthResult(result);
+    const stored = { ...loggedInUser, token };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    setUser(stored);
+    return stored;
+  }, []);
+
   const register = useCallback(async ({ name, email, password }) => {
     const result = await authService.register({ name, email, password });
     const { user: newUser, token } = normalizeAuthResult(result, { fromRegister: true });
@@ -110,6 +124,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user,
     isLoading,
     login,
+    loginWithGoogle,
     register,
     logout,
     updateUser,

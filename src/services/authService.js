@@ -14,6 +14,12 @@ export const authService = {
   register: ({ name, email, password }) =>
     apiFetch("/auth/register", { method: "POST", body: { name, email, password } }),
   login: ({ email, password }) => apiFetch("/auth/login", { method: "POST", body: { email, password } }),
+  // Confirmed real endpoint — POST /auth/google, body { idToken }. Backend
+  // verifies the token server-side against GOOGLE_CLIENT_ID and either
+  // logs in an existing account or silently registers a new one (with a
+  // wallet + QR pass created the same as normal registration). Response
+  // shape is flat { user, token }, same as login — no extra nesting.
+  googleLogin: (idToken) => apiFetch("/auth/google", { method: "POST", body: { idToken } }),
   me: () => apiFetch("/auth/me"),
   updateProfile: ({ name, profileImageUrl }) =>
     apiFetch("/auth/me", { method: "PATCH", body: { name, profileImageUrl } }),

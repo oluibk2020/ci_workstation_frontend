@@ -37,6 +37,9 @@ import TodaysBookingsPage from "./pages/staff/TodaysBookingsPage";
 import ReassignmentHistoryPage from "./pages/admin/ReassignmentHistoryPage";
 import PaymentsWalletCreditsPage from "./pages/admin/PaymentsWalletCreditsPage";
 import ReportsPage from "./pages/admin/ReportsPage";
+import StaffPage from "./pages/admin/StaffPage";
+import SettingsPage from "./pages/admin/SettingsPage";
+import AuditLogsPage from "./pages/admin/AuditLogsPage";
 import StaffSeatsPage from "./pages/staff/StaffSeatsPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminClientsPage from "./pages/admin/AdminClientsPage";
@@ -128,22 +131,9 @@ export default function App() {
             element={<PaymentsWalletCreditsPage />}
           />
           <Route path="/admin/reports" element={<ReportsPage />} />
-          <Route
-            path="/admin/staff"
-            element={<ComingSoon title="Staff" phase="Phase 1 — Foundation" />}
-          />
-          <Route
-            path="/admin/settings"
-            element={
-              <ComingSoon title="Settings" phase="Phase 1 — Foundation" />
-            }
-          />
-          <Route
-            path="/admin/audit-logs"
-            element={
-              <ComingSoon title="Audit logs" phase="Phase 7 — Analytics" />
-            }
-          />
+          <Route path="/admin/staff" element={<StaffPage />} />
+          <Route path="/admin/settings" element={<SettingsPage />} />
+          <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
         </Route>
       </Route>
 

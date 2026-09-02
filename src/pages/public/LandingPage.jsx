@@ -1,6 +1,13 @@
 import { Link } from "react-router-dom";
 import {
-  Zap, Wifi, CalendarDays, QrCode, Gift, MapPin, ArrowRight, Quote,
+  Zap,
+  Wifi,
+  CalendarDays,
+  QrCode,
+  Gift,
+  MapPin,
+  ArrowRight,
+  Quote,
 } from "lucide-react";
 import Button from "../../components/common/Button";
 import Eyebrow from "../../components/common/Eyebrow";
@@ -41,10 +48,26 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { n: "01", title: "Fund your wallet", desc: "Top up via Paystack anytime — no minimum, and it never expires." },
-  { n: "02", title: "Book a desk", desc: "Pick a branch, a workstation type, and one or more days." },
-  { n: "03", title: "Get your QR pass", desc: "One persistent QR per account — for you, or whoever you're gifting the seat to." },
-  { n: "04", title: "Check in and work", desc: "Staff verify your QR on arrival and your session starts." },
+  {
+    n: "01",
+    title: "Fund your wallet",
+    desc: "Top up via Paystack anytime — no minimum, and it never expires.",
+  },
+  {
+    n: "02",
+    title: "Book a desk",
+    desc: "Pick a branch, a workstation type, and one or more days.",
+  },
+  {
+    n: "03",
+    title: "Get your QR pass",
+    desc: "One persistent QR per account — for you, or whoever you're gifting the seat to.",
+  },
+  {
+    n: "04",
+    title: "Check in and work",
+    desc: "Staff verify your QR on arrival and your session starts.",
+  },
 ];
 
 const TESTIMONIAL = {
@@ -80,15 +103,22 @@ export default function LandingPage() {
               Your time. Your workstation.
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg text-slate-300">
-              Work Station gives developers a reliable desk, real internet, and a door that locks.
-              Book by the day, show up with your own machine, and get to work.
+              Work Station gives developers a reliable desk, real internet, and
+              a door that locks. Book by the day, show up with your own machine,
+              and get to work.
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button as={Link} to="/register" size="lg">
                 Book a workstation
                 <ArrowRight size={18} />
               </Button>
-              <Button as={Link} to="/how-it-works" variant="outline" size="lg" className="border-white/20 text-white hover:border-white hover:text-white hover:bg-white/5">
+              <Button
+                as={Link}
+                to="/how-it-works"
+                variant="outline"
+                size="lg"
+                className="border-white/20 text-white hover:border-white hover:text-white hover:bg-white/5"
+              >
                 See how it works
               </Button>
             </div>
@@ -118,8 +148,12 @@ export default function LandingPage() {
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
                 <f.icon size={22} />
               </div>
-              <h3 className="mt-4 font-semibold text-[var(--color-primary)]">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">{f.desc}</p>
+              <h3 className="mt-4 font-semibold text-[var(--color-primary)]">
+                {f.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                {f.desc}
+              </p>
             </div>
           ))}
         </div>
@@ -138,9 +172,15 @@ export default function LandingPage() {
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((s, i) => (
               <div key={s.n} className="relative">
-                <p className="font-mono-tight text-4xl font-bold text-slate-200">{s.n}</p>
-                <h3 className="mt-3 font-semibold text-[var(--color-primary)]">{s.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">{s.desc}</p>
+                <p className="font-mono-tight text-4xl font-bold text-slate-200">
+                  {s.n}
+                </p>
+                <h3 className="mt-3 font-semibold text-[var(--color-primary)]">
+                  {s.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                  {s.desc}
+                </p>
                 {i < STEPS.length - 1 && (
                   <div className="absolute right-[-1rem] top-4 hidden text-slate-300 lg:block">
                     <ArrowRight size={18} />
@@ -161,14 +201,26 @@ export default function LandingPage() {
               A desk, a socket, a signal.
             </h2>
           </div>
-          <Link to="/workstations" className="text-sm font-semibold text-[var(--color-accent)] hover:underline">
+          <Link
+            to="/workstations"
+            className="text-sm font-semibold text-[var(--color-accent)] hover:underline"
+          >
             View all workstations →
           </Link>
         </div>
 
+        <img
+          src="/photos/sagamu-desks.jpg"
+          alt="Partitioned desks with privacy dividers at the Sagamu branch"
+          className="mx-auto mt-8 aspect-[4/3] w-full max-w-3xl rounded-2xl object-cover sm:aspect-[16/9] sm:max-w-none"
+        />
+
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {showcaseWorkstations.map((ws) => (
-            <div key={ws.id} className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white">
+            <div
+              key={ws.id}
+              className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white"
+            >
               <div className="flex h-32 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 font-mono-tight text-sm text-slate-400">
                 Seat {ws.seatId}
               </div>
@@ -179,7 +231,9 @@ export default function LandingPage() {
                   </p>
                   <span className="h-2 w-2 rounded-full bg-[var(--color-success)] status-dot" />
                 </div>
-                <p className="mt-2 font-semibold text-[var(--color-primary)]">{ws.workstationName}</p>
+                <p className="mt-2 font-semibold text-[var(--color-primary)]">
+                  {ws.workstationName}
+                </p>
                 <p className="mt-4 font-mono-tight text-lg font-bold text-[var(--color-primary)]">
                   ₦{ws.pricePerDay.toLocaleString()}/day
                 </p>
@@ -197,24 +251,36 @@ export default function LandingPage() {
             One flat rate per day. No bundles, no discounts.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-slate-300">
-            Every workstation type has a daily rate, set per branch. Pay for exactly the days you
-            book, straight from your wallet — the rate per day doesn't drop whether you book 1 day
-            or 30.
+            Every workstation type has a daily rate, set per branch. Pay for
+            exactly the days you book, straight from your wallet — the rate per
+            day doesn't drop whether you book 1 day or 30.
           </p>
 
           <div className="mx-auto mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
             {showcaseWorkstations.map((ws) => (
-              <div key={ws.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+              <div
+                key={ws.id}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"
+              >
                 <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
                   {ws.branchName}
                 </p>
-                <p className="mt-2 font-mono-tight text-2xl font-bold text-white">₦{ws.pricePerDay.toLocaleString()}/day</p>
-                <p className="mt-1 text-sm text-slate-400">{ws.workstationName}</p>
+                <p className="mt-2 font-mono-tight text-2xl font-bold text-white">
+                  ₦{ws.pricePerDay.toLocaleString()}/day
+                </p>
+                <p className="mt-1 text-sm text-slate-400">
+                  {ws.workstationName}
+                </p>
               </div>
             ))}
           </div>
 
-          <Button as={Link} to="/pricing" variant="outline" className="mt-10 border-white/20 text-white hover:border-white hover:bg-white/5 hover:text-white">
+          <Button
+            as={Link}
+            to="/pricing"
+            variant="outline"
+            className="mt-10 border-white/20 text-white hover:border-white hover:bg-white/5 hover:text-white"
+          >
             See all rates
           </Button>
         </div>
@@ -227,7 +293,10 @@ export default function LandingPage() {
           "{TESTIMONIAL.quote}"
         </p>
         <p className="mt-6 text-center text-sm text-slate-500">
-          <span className="font-semibold text-[var(--color-primary)]">{TESTIMONIAL.name}</span> — {TESTIMONIAL.role}
+          <span className="font-semibold text-[var(--color-primary)]">
+            {TESTIMONIAL.name}
+          </span>{" "}
+          — {TESTIMONIAL.role}
         </p>
       </section>
 

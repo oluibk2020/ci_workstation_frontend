@@ -3,15 +3,31 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { dashboardPathForRole } from "../../utils/roleRouting";
 import Button from "../../components/common/Button";
+import GoogleSignInButton from "./GoogleSigninButton";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+
+  async function handleGoogleSuccess(idToken) {
+    setError("");
+    setGoogleSubmitting(true);
+    try {
+      const user = await loginWithGoogle(idToken);
+      const redirectTo = location.state?.from?.pathname || dashboardPathForRole(user.role);
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setError(err.message || "Couldn't sign you in with Google. Please try again.");
+    } finally {
+      setGoogleSubmitting(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -43,6 +59,20 @@ export default function LoginPage() {
       <p className="mt-1 text-sm text-slate-500">Welcome back — book your next desk in a minute.</p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div className="flex justify-center">
+          <GoogleSignInButton
+            onSuccess={handleGoogleSuccess}
+            onError={(msg) => setError(msg)}
+          />
+        </div>
+        {googleSubmitting && <p className="text-center text-sm text-slate-400">Signing you in...</p>}
+
+        <div className="flex items-center gap-3 text-xs text-slate-400">
+          <div className="h-px flex-1 bg-[var(--color-line)]" />
+          or continue with email
+          <div className="h-px flex-1 bg-[var(--color-line)]" />
+        </div>
+
         <div>
           <label className="text-sm font-medium text-slate-700">Email</label>
           <input

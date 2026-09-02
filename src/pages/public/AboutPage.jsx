@@ -22,6 +22,31 @@ export default function AboutPage() {
           We're currently operating in Sagamu and Lekki, with more branches planned as demand grows.
         </p>
       </div>
+
+      <div className="mt-12">
+        <img
+          src="/photos/sagamu-workspace-in-use.jpg"
+          alt="A developer working at a partitioned desk in the Sagamu branch"
+          className="w-full rounded-2xl object-cover"
+        />
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <img
+            src="/photos/sagamu-desks.jpg"
+            alt="Partitioned desks with privacy dividers at the Sagamu branch"
+            className="aspect-[4/3] w-full rounded-xl object-cover"
+          />
+          <img
+            src="/photos/sagamu-presentation-room.jpg"
+            alt="Presentation screen in the Sagamu branch's meeting space"
+            className="aspect-[4/3] w-full rounded-xl object-cover"
+          />
+          <img
+            src="/photos/sagamu-meeting-space.jpg"
+            alt="Seating and projector setup at the Sagamu branch"
+            className="aspect-[4/3] w-full rounded-xl object-cover"
+          />
+        </div>
+      </div>
     </div>
   );
 }

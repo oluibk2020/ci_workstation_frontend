@@ -33,8 +33,20 @@ import { apiFetch } from "./api";
  *   physically using the seat.
  */
 export const bookingService = {
-  getAvailability: ({ branchId, workstationId, startDate, endDate }) =>
-    apiFetch(`/availability?${new URLSearchParams({ branchId, workstationId, startDate, endDate })}`),
+  // BUG FIX: their controller nests the actual payload one level deeper
+  // than most of their other endpoints — { data: { availability: {...} } }
+  // instead of { data: {...} } directly (matches their own convention
+  // elsewhere, e.g. { data: { user } }, { data: { wallet } }, just easy to
+  // miss). Without unwrapping `.availability` here, callers received
+  // { availability: {...} } and any code reading `.dates` off the result
+  // directly (e.g. BookWorkstationPage's availableSeats calculation) got
+  // undefined, then threw trying to call .filter() on it.
+  getAvailability: async ({ branchId, workstationId, startDate, endDate }) => {
+    const result = await apiFetch(
+      `/availability?${new URLSearchParams({ branchId, workstationId, startDate, endDate })}`
+    );
+    return result.availability;
+  },
 
   create: ({
     bookingFor, // "SELF" | "OTHER"
