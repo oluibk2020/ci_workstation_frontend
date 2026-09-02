@@ -23,4 +23,9 @@ export const adminUserService = {
     apiFetch(`/admin/users/${userId}/status`, { method: "PATCH", body: { status } }),
   updateRole: (userId, role) =>
     apiFetch(`/admin/users/${userId}/role`, { method: "PATCH", body: { role } }),
+  // New — see docs/PATCH_NOTES.md. Reuses the real walletService.creditWallet
+  // on the backend, so this produces a properly-formed CASH_FUNDING ledger
+  // entry, not a shortcut.
+  creditWallet: (userId, amount, reason) =>
+    apiFetch(`/admin/users/${userId}/wallet-credit`, { method: "POST", body: { amount, reason } }),
 };

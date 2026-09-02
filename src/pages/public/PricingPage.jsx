@@ -22,16 +22,23 @@ export default function PricingPage() {
           One flat rate per day. No bundles, no discounts.
         </h1>
         <p className="mt-3 text-slate-500">
-          Every workstation type has a daily rate, set by branch. You pay for exactly the number of
-          days you book — the per-day price doesn't drop for booking more days.
+          Every workstation type has a daily rate, set by branch. You pay for
+          exactly the number of days you book — the per-day price doesn't drop
+          for booking more days.
         </p>
       </div>
 
       <div className="mx-auto mt-12 max-w-3xl rounded-2xl border border-[var(--color-line)] bg-white p-6 sm:p-8">
         <ul className="space-y-3">
           {POINTS.map((point) => (
-            <li key={point} className="flex items-start gap-3 text-sm text-slate-600">
-              <Check size={18} className="mt-0.5 shrink-0 text-[var(--color-success)]" />
+            <li
+              key={point}
+              className="flex items-start gap-3 text-sm text-slate-600"
+            >
+              <Check
+                size={18}
+                className="mt-0.5 shrink-0 text-[var(--color-success)]"
+              />
               {point}
             </li>
           ))}
@@ -39,12 +46,15 @@ export default function PricingPage() {
       </div>
 
       <div className="mx-auto mt-12 max-w-3xl">
-        <h2 className="text-lg font-semibold text-[var(--color-primary)]">Sample daily rates</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-primary)]">
+          Sample daily rates
+        </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Final rates are configured per branch and workstation type by our admin team.
+          Final rates are configured per branch and workstation type by our
+          admin team.
         </p>
-        <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--color-line)]">
-          <table className="w-full text-sm">
+        <div className="mt-5 overflow-x-auto rounded-2xl border border-[var(--color-line)]">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
                 <th className="px-5 py-3">Branch</th>
@@ -56,9 +66,13 @@ export default function PricingPage() {
             <tbody className="divide-y divide-[var(--color-line)]">
               {workstations.map((wk) => (
                 <tr key={wk.id}>
-                  <td className="px-5 py-3 font-medium text-[var(--color-primary)]">{getBranchName(wk.branchId)}</td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-primary)]">
+                    {getBranchName(wk.branchId)}
+                  </td>
                   <td className="px-5 py-3 text-slate-500">{wk.name}</td>
-                  <td className="px-5 py-3 text-slate-500">{getSeatsForWorkstation(wk.id).length}</td>
+                  <td className="px-5 py-3 text-slate-500">
+                    {getSeatsForWorkstation(wk.id).length}
+                  </td>
                   <td className="px-5 py-3 text-right font-mono-tight font-semibold text-[var(--color-primary)]">
                     ₦{wk.pricePerDay.toLocaleString()}
                   </td>
@@ -69,9 +83,12 @@ export default function PricingPage() {
         </div>
 
         <div className="mt-6 rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">
-          <span className="font-mono-tight font-semibold text-[var(--color-primary)]">Example:</span>{" "}
-          booking a Standing Desk seat in Sagamu for 5 days costs 5 × ₦8,000 = ₦40,000 — the same
-          ₦8,000/day rate whether you book 1 day or 20, debited from your wallet.
+          <span className="font-mono-tight font-semibold text-[var(--color-primary)]">
+            Example:
+          </span>{" "}
+          booking a Standing Desk seat in Sagamu for 5 days costs 5 × ₦8,000 =
+          ₦40,000 — the same ₦8,000/day rate whether you book 1 day or 20,
+          debited from your wallet.
         </div>
 
         <div className="mt-8 flex justify-center">

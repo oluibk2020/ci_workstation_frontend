@@ -1,7 +1,6 @@
 import { apiFetch } from "./api";
 
 /**
- * Not called anywhere yet — Phase 5 (QR & Verification) hasn't been built.
  * Endpoints and payload shape confirmed directly from
  * routes/checkinRoute.js and services/checkinService.js — corrects two
  * earlier guesses: the path is singular "/checkin" (not "/checkins"), and
@@ -12,10 +11,9 @@ import { apiFetch } from "./api";
  * allows any authenticated USER to check themselves in, not just staff).
  * Pass it when Staff/Super Admin are checking someone else in.
  *
- * NOTE (see docs/BACKEND_CODE_REVIEW.md §2): their current implementation
- * does not check verificationStatus before allowing check-in, despite
- * their own spec requiring it for first-time access. Don't assume the
- * backend enforces this yet.
+ * Verification and ban checks ARE enforced server-side (patched
+ * 2026-08-31 — see docs/PATCH_NOTES.md): an UNVERIFIED or BANNED person
+ * being checked in will get a real error back, not a silent success.
  */
 export const checkinService = {
   checkIn: (bookingDateId, targetUserId) =>

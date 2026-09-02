@@ -29,6 +29,15 @@ export const VERIFICATION_STATUS = {
   REJECTED: "REJECTED",
 };
 
+// Confirmed exact values from schema.prisma's IDDocumentType enum.
+export const ID_DOCUMENT_TYPE = {
+  NATIONAL_ID: "NATIONAL_ID",
+  PASSPORT: "PASSPORT",
+  DRIVERS_LICENSE: "DRIVERS_LICENSE",
+  VOTERS_CARD: "VOTERS_CARD",
+  OTHERS: "OTHERS",
+};
+
 // Branch, Workstation, and Seat each carry their own simple ACTIVE/INACTIVE
 // status (confirmed: BranchStatus, WorkstationStatus, SeatStatus in
 // schema.prisma — all three are the same two-value enum shape). Whether a

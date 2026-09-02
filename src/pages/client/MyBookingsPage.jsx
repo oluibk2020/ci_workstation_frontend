@@ -120,7 +120,7 @@ export default function MyBookingsPage() {
 
             <div className="mt-4 divide-y divide-[var(--color-line)] border-t border-[var(--color-line)]">
               {(booking.dates || []).map((d) => (
-                <div key={d.id || d.bookingDate} className="flex items-center justify-between py-3">
+                <div key={d.id || d.bookingDate} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <div className="flex items-center gap-3">
                     <span className="font-mono-tight text-sm text-slate-600">
                       {new Date(d.bookingDate).toLocaleDateString(undefined, {

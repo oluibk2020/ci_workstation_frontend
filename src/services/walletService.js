@@ -9,17 +9,18 @@ import { apiFetch } from "./api";
  * Payments concern, not a Wallet one — see paymentService.js. The wallet
  * only gets credited as a *side effect* of a verified Paystack payment.
  *
- * Cash funding (Super Admin credits a wallet for an in-person payment) is
- * modeled in their schema (CASH_FUNDING ledger type) but has NO endpoint
- * anywhere in their current codebase — see docs/BACKEND_CODE_REVIEW.md §2.
- * `creditCashFunding` below is a placeholder guess at a path following
- * their existing REST conventions; there is nothing to confirm it against
- * yet, unlike everything else in this file.
+ * Cash funding is real and confirmed — but the actual endpoint is
+ * `POST /admin/users/:userId/wallet-credit` (see adminUserService.js's
+ * `creditWallet`), not `/wallet/:userId/cash-funding` as an earlier
+ * placeholder guess here suggested. That unused guess has been removed.
  */
 export const walletService = {
   getBalance: () => apiFetch("/wallet"),
   listTransactions: () => apiFetch("/wallet/transactions"),
-  // Unconfirmed guess — no real endpoint exists for this yet (see note above).
-  creditCashFunding: (userId, amount, reason) =>
-    apiFetch(`/wallet/${userId}/cash-funding`, { method: "POST", body: { amount, reason } }),
+  // Super Admin only — cross-user log of every cash-funding credit issued,
+  // for the "Payments & Wallet Credits" admin page.
+  getCashFundingHistory: ({ page, limit } = {}) => {
+    const params = new URLSearchParams({ ...(page && { page }), ...(limit && { limit }) }).toString();
+    return apiFetch(`/wallet/admin/cash-funding-history${params ? `?${params}` : ""}`);
+  },
 };

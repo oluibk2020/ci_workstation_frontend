@@ -91,6 +91,230 @@ src/
 
 ## Build Log
 
+### 2026-09-01 (continued) — Payment History page
+
+Scope: the next item picked from the remaining-work list — a genuine
+functional gap (`/client/transactions` was still `ComingSoon`), and the
+last one buildable without external credentials before hitting
+Paystack/file-storage blockers.
+
+- [x] Backend: `paymentService.getMyPayments`, wired through
+      `paymentController.getMyPayments` and `GET /api/v1/payments`
+      (any authenticated USER). Boot-tested, confirmed correct `401`.
+- [x] `paymentService.js` (frontend) — added `list()`.
+- [x] `PaymentHistoryPage.jsx` (`/client/transactions`) — lists Paystack
+      payment attempts with status badges, provider reference, and
+      channel. Explicitly notes the distinction from the Wallet page's
+      transaction ledger, since they're genuinely different data
+      (`Payment` attempts vs. `WalletTransaction` ledger entries) and
+      easy to conflate.
+- [x] Production build + lint verified clean (0 errors; 1 new warning,
+      same pre-existing style pattern as every other data-fetching page).
+
+**Where this leaves the phase map:** Phases 1–6 are now solidly built out
+(Foundation, Locations/Workstations, Booking, Payments-partial, QR &
+Verification, Sessions). What's left: real Paystack funding and real file
+storage (both blocked on external credentials only the project owner can
+provide), and Phases 7 (Analytics/Reporting) and 8 (Real-Time/Socket.IO),
+neither of which has been started.
+
+---
+
+### 2026-09-01 (continued) — Fix: QR pass wasn't actually scannable
+
+Reported directly: "My QR pass is not generating scannable codes yet."
+
+**Root cause, and it was mine:** `QRPage.jsx` rendered the QR image via
+`<img src="https://api.qrserver.com/...">` — an external third-party API
+called over the network purely to avoid adding a dependency. That's
+fragile in exactly the way it just failed: if that domain is blocked,
+slow, rate-limited, or down on someone's network, the image silently
+fails to load and there's nothing scannable on screen. It also meant
+sending the QR's raw token to an outside service for no good reason.
+
+- [x] Installed `qrcode.react` — renders the QR code as an SVG entirely
+      client-side, zero network calls, zero external dependency.
+- [x] `QRPage.jsx` — replaced the `<img>` pointed at api.qrserver.com with
+      `<QRCodeSVG value={qrUrl} size={220} />`.
+- [x] Swept the rest of the frontend for the same pattern — confirmed this
+      was the only place it existed.
+- [x] Production build + lint verified clean (0 errors, same warning
+      count as before).
+
+---
+
+### 2026-09-01 (continued) — Cash-funding endpoint, Credit Wallet restored
+
+Scope: the one remaining item from the last "what's next" list that was
+genuinely buildable without external credentials.
+
+- [x] Backend: `adminService.creditUserWallet`, wired through
+      `adminController.creditUserWallet` and a new route,
+      `POST /admin/users/:userId/wallet-credit` (Super Admin only). Reuses
+      the real `walletService.creditWallet` directly — same code path
+      Paystack funding uses — so it produces a properly-formed
+      `CASH_FUNDING` ledger entry, not a shortcut. Refuses to credit a
+      banned account. Boot-tested, confirmed correct `401`.
+- [x] `adminUserService.js` — added `creditWallet(userId, amount, reason)`.
+- [x] `AdminClientsPage.jsx` — **"Credit Wallet" restored.** This is the
+      same button that got intentionally removed a few sessions ago with
+      an explicit note that nothing real existed to wire it to — now it
+      does. Opens a modal, amount + optional reason, shows a clean success
+      state.
+- [x] Production build + lint verified clean (0 errors, same warning count
+      as before — no new issues introduced).
+
+**What this unblocks:** Super Admin can now fund any client's wallet for
+testing without needing Paystack keys — a second, more realistic path
+alongside `scripts/creditTestWallet.js` (that script bypasses the API
+entirely for local dev; this is the real, audited, in-app equivalent).
+
+---
+
+### 2026-09-01 (continued) — Four features: Today's Bookings, My Sessions, Profile, Notifications
+
+Scope: the four items picked from the last "what's next" menu. Two needed
+new backend work; two didn't.
+
+**Backend additions** (see `docs/PATCH_NOTES.md` for full detail):
+- [x] `PATCH /auth/me` — profile updates (name + photo). No profile-update
+      capability existed at all before this.
+- [x] `GET /bookings/today?branchId=` — Staff/Super Admin only. Was a real
+      operational gap: the only way to know who's expected at a branch was
+      scanning QR codes one at a time.
+- Both boot-tested and confirmed returning proper `401`s (not 404s/crashes).
+
+**Frontend:**
+- [x] `MySessionsPage.jsx` (`/client/sessions`) — deliberately **not** a
+      new backend endpoint. `GET /bookings` already nests each date's
+      `checkIn` record; this just flattens that across every booking into
+      a session history, sorted newest first.
+- [x] `ProfilePage.jsx` (`/client/profile`) — name + photo editing, wired
+      to the new `PATCH /auth/me`. `AuthContext` gained an `updateUser`
+      helper so this (and `VerificationPage`) can refresh local session
+      state without a full re-login.
+- [x] `TodaysBookingsPage.jsx` — shared by `/staff/bookings` and
+      `/admin/bookings`, wired to the new endpoint. Branch picker at the
+      top since "today" is computed per-branch timezone on the backend.
+- [x] `NotificationsPage.jsx` (`/client/notifications`) — the backend was
+      already fully correct here (fixed in the previous session's
+      `req.user.sub` sweep), just needed a UI. Mark-one and mark-all-read
+      both wired.
+- [x] `notificationService.js` (new), `authService.updateProfile`,
+      `bookingService.getTodaysBookings` added.
+- [x] Nav config needed **zero changes** — every one of these routes
+      already had a sidebar entry from when they were `ComingSoon`
+      placeholders, so replacing the placeholder component was the whole
+      job on the routing side.
+- [x] Production build + lint verified clean (0 errors).
+
+**Caught and fixed a self-inflicted bug during this session:** an editing
+mistake briefly deleted `bookingController.js:cancelBooking`'s opening
+`try {`. Caught immediately via the syntax-check step before it went
+anywhere.
+
+**Worth noting for whoever builds these next:** `/staff/reassignments` and
+`/admin/reassignments` are still `ComingSoon`, but the label doesn't quite
+match reality — reassignment is **self-service** (the booker calls
+`POST /bookings/:id/reassign` directly; there's no approval step in the
+schema or service we built). If this screen gets built, it should
+probably be an audit/history view of `BookingReassignment` records rather
+than a "pending requests" queue implying staff sign-off is required.
+
+---
+
+### 2026-09-01 — Systemic backend bug fixed + identity verification built
+
+Scope: investigating "what's the next build" surfaced a much bigger issue
+worth fixing first — the same `req.user.sub` bug found earlier turned out
+to affect five controllers, not one, and check-in's newly-added
+verification requirement had no way to ever be satisfied by a real user.
+Full detail in `docs/PATCH_NOTES.md`'s fourth pass.
+
+- [x] Backend: fixed `req.user.sub` → `req.user.id` in
+      `checkinController.js` (check-in/check-out were completely
+      non-functional), `qrCodeController.js` (generate/get-current/revoke
+      QR were all broken), `adminController.js` (the "can't modify your
+      own account" self-guard was silently unenforced), and
+      `notificationController.js`.
+- [x] Backend: built the entire identity verification feature from
+      scratch (submit → pending queue → approve/reject) — see
+      `docs/PATCH_NOTES.md` for the file-storage decision (base64 data
+      URIs, since no upload library or cloud storage credentials exist
+      yet).
+- [x] `verificationService.js` — new frontend service, includes
+      `fileToDataUri` helper matching the backend's storage approach.
+- [x] `VerificationPage.jsx` (`/client/verification`) — document type
+      picker, optional document number, file upload with preview, submit.
+      Shows a clean "already verified" or "pending review" state instead
+      of the form once applicable.
+- [x] `VerificationQueuePage.jsx` — shared by `/staff/verifications` and
+      `/admin/verifications`: lists pending submissions with document
+      thumbnails, Approve (one click) or Reject (requires a reason).
+- [x] `constants.js` — added `ID_DOCUMENT_TYPE`, confirmed exact match to
+      the schema's `IDDocumentType` enum.
+- [x] Added "Verification" to the client sidebar.
+- [x] Production build + lint verified clean (0 errors).
+
+**Confirmed already excellent, not built this session:** the QR scan →
+check-in loop (`QRResolvePage.jsx` for direct-scan, `StaffScanPage.jsx` as
+a paste-based fallback) turned out to already be fully built and wired —
+better design than what was about to be built from scratch. No changes
+needed there.
+
+**Worth a heads-up to the backend team:** the sheer number of places the
+`.sub`/`.id` mismatch appeared suggests checking for it project-wide
+going forward, not just in the files covered by this session's review —
+see the note in `PATCH_NOTES.md`.
+
+---
+
+### 2026-08-31 (continued) — Phase 5 groundwork: QR scanning & check-in
+
+Scope: the physical-access loop — someone scans a QR, staff (or the
+person themselves) checks them in. Builds directly on the QR pass work
+from earlier and the backend gaps patched this session.
+
+- [x] **Backend fix found while wiring this**: `qrCodeService.resolveQRCode`
+      never returned the `BookingDate.id` that `checkinService.checkIn`
+      requires — the public scan endpoint could tell you someone had a
+      booking today but gave nothing to act on it with. Added
+      `bookingDateId` to the response (purely additive). See
+      `docs/PATCH_NOTES.md`.
+- [x] `QRResolvePage.jsx` (`/u/:token`, no layout chrome) — this is the
+      literal URL the backend encodes into every QR image
+      (`${FRONTEND_URL}/u/:token`), so this is genuinely what someone's
+      phone opens when they scan a client's pass. Shows identity +
+      verification status + today's booking (or "none"). Check-in/out
+      buttons only appear if the viewer is either the person themselves
+      (self-check-in, which the backend allows) or logged in as
+      Staff/Admin.
+- [x] `StaffScanPage.jsx` (`/staff/scan`, replaces its `ComingSoon`) — a
+      manual fallback for Staff: paste a QR token or full link instead of
+      relying on a phone camera, reusing the same resolve/check-in calls.
+      Not a camera-based in-app scanner — that's a separate, unbuilt
+      feature.
+- [x] `checkinService.js` — comment corrected; it previously said
+      verification/ban checks weren't enforced server-side, which was
+      true when written but is no longer accurate now that those gaps are
+      patched.
+- [x] Production build + lint verified clean (0 errors).
+
+**Not done:** identity verification submission (profile photo + ID
+document upload) — genuinely doesn't exist anywhere in the codebase, not
+even a stub (checked routes/controllers/services directly). Since
+check-in correctly requires `VERIFIED` status, and nothing anywhere sets
+it away from the schema's `UNVERIFIED` default, **no account can
+currently pass check-in through any real flow** — including the seeded
+Super Admin. Added `scripts/verifyTestUser.js` (same dev-only pattern as
+the wallet credit script) so check-in can actually be tested before the
+real verification feature exists. Building that real feature — photo/ID
+upload, an admin review queue, `IdentityVerification`/`IDDocument` models
+already exist in the schema but have zero implementation — is the clear
+next priority.
+
+---
+
 ### 2026-08-31 (continued) — Phase 3: Booking
 
 Scope: real booking creation and management, using the confirmed exact

@@ -7,8 +7,15 @@ import Button from "../../components/common/Button";
 // Wired to the real backend. NOTE: no workstation delete route exists —
 // create, update, and status-update do. This page only offers those.
 export default function AdminWorkstationsPage() {
-  const { workstations, branches, isLoading, addWorkstation, updateWorkstation, getBranchName, getSeatsForWorkstation } =
-    useCatalog();
+  const {
+    workstations,
+    branches,
+    isLoading,
+    addWorkstation,
+    updateWorkstation,
+    getBranchName,
+    getSeatsForWorkstation,
+  } = useCatalog();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [branchFilter, setBranchFilter] = useState("ALL");
@@ -16,8 +23,11 @@ export default function AdminWorkstationsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const filtered = useMemo(
-    () => (branchFilter === "ALL" ? workstations : workstations.filter((wk) => wk.branchId === branchFilter)),
-    [workstations, branchFilter]
+    () =>
+      branchFilter === "ALL"
+        ? workstations
+        : workstations.filter((wk) => wk.branchId === branchFilter),
+    [workstations, branchFilter],
   );
 
   function openCreate() {
@@ -53,11 +63,14 @@ export default function AdminWorkstationsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-primary)]">Workstation Types</h1>
+          <h1 className="text-xl font-bold text-[var(--color-primary)]">
+            Workstation Types
+          </h1>
           <p className="text-sm text-slate-500">
-            A workstation is a type/category (e.g. "Standing Desk") that holds a daily rate. Add
-            individual bookable seats under each type on the Seats page. Removing a type isn't
-            available yet — the backend has no delete route for it.
+            A workstation is a type/category (e.g. "Standing Desk") that holds a
+            daily rate. Add individual bookable seats under each type on the
+            Seats page. Removing a type isn't available yet — the backend has no
+            delete route for it.
           </p>
         </div>
         <Button onClick={openCreate} disabled={branches.length === 0}>
@@ -82,7 +95,9 @@ export default function AdminWorkstationsPage() {
         <button
           onClick={() => setBranchFilter("ALL")}
           className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-            branchFilter === "ALL" ? "bg-[var(--color-primary)] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            branchFilter === "ALL"
+              ? "bg-[var(--color-primary)] text-white"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
           }`}
         >
           All branches
@@ -92,7 +107,9 @@ export default function AdminWorkstationsPage() {
             key={b.id}
             onClick={() => setBranchFilter(b.id)}
             className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              branchFilter === b.id ? "bg-[var(--color-primary)] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              branchFilter === b.id
+                ? "bg-[var(--color-primary)] text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
             {b.name}
@@ -105,8 +122,8 @@ export default function AdminWorkstationsPage() {
           <Loader2 size={16} className="animate-spin" /> Loading...
         </p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-[var(--color-line)] bg-white">
+          <table className="w-full min-w-[600px] text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
                 <th className="px-5 py-3">Type</th>
@@ -119,9 +136,15 @@ export default function AdminWorkstationsPage() {
             <tbody className="divide-y divide-[var(--color-line)]">
               {filtered.map((wk) => (
                 <tr key={wk.id}>
-                  <td className="px-5 py-3 font-medium text-[var(--color-primary)]">{wk.name}</td>
-                  <td className="px-5 py-3 text-slate-500">{getBranchName(wk.branchId)}</td>
-                  <td className="px-5 py-3 text-slate-500">{getSeatsForWorkstation(wk.id).length}</td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-primary)]">
+                    {wk.name}
+                  </td>
+                  <td className="px-5 py-3 text-slate-500">
+                    {getBranchName(wk.branchId)}
+                  </td>
+                  <td className="px-5 py-3 text-slate-500">
+                    {getSeatsForWorkstation(wk.id).length}
+                  </td>
                   <td className="px-5 py-3 text-right font-mono-tight font-semibold text-[var(--color-primary)]">
                     ₦{wk.pricePerDay.toLocaleString()}
                   </td>
@@ -141,7 +164,11 @@ export default function AdminWorkstationsPage() {
             </tbody>
           </table>
 
-          {filtered.length === 0 && <p className="p-5 text-sm text-slate-400">No workstation types yet.</p>}
+          {filtered.length === 0 && (
+            <p className="p-5 text-sm text-slate-400">
+              No workstation types yet.
+            </p>
+          )}
         </div>
       )}
 

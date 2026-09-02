@@ -54,10 +54,33 @@ export const bookingService = {
       body: { bookingFor, beneficiaryEmail, beneficiaryName, createBeneficiaryAccount, branchId, workstationId, seatId, type, startDate, endDate, dates },
     }),
 
-  list: ({ status, page, limit } = {}) =>
-    apiFetch(`/bookings${new URLSearchParams({ ...(status && { status }), ...(page && { page }), ...(limit && { limit }) })}`),
+  list: ({ status, page, limit } = {}) => {
+    // BUG FIX: was missing the "?" before the query string — calling
+    // with any argument (e.g. { status: "ACTIVE" }, used by
+    // ClientDashboardPage) produced a malformed URL like
+    // "/bookingsstatus=ACTIVE" instead of "/bookings?status=ACTIVE",
+    // which 404'd. Calling with no arguments (MyBookingsPage,
+    // MySessionsPage) masked this, since an empty query string just
+    // appended nothing.
+    const params = new URLSearchParams({
+      ...(status && { status }),
+      ...(page && { page }),
+      ...(limit && { limit }),
+    }).toString();
+    return apiFetch(`/bookings${params ? `?${params}` : ""}`);
+  },
 
   get: (bookingId) => apiFetch(`/bookings/${bookingId}`),
+
+  // Staff/Super Admin only — new backend endpoint, see docs/PATCH_NOTES.md.
+  getTodaysBookings: (branchId) => apiFetch(`/bookings/today?${new URLSearchParams({ branchId })}`),
+
+  // Super Admin only — history log, not a "requests" queue (reassignment
+  // is self-service in this system, there's no approval step).
+  getReassignmentHistory: ({ page, limit } = {}) => {
+    const params = new URLSearchParams({ ...(page && { page }), ...(limit && { limit }) }).toString();
+    return apiFetch(`/bookings/reassignments/history${params ? `?${params}` : ""}`);
+  },
 
   // dates: array of "YYYY-MM-DD" strings to cancel from this booking.
   cancel: (bookingId, dates) => apiFetch(`/bookings/${bookingId}/cancel`, { method: "POST", body: { dates } }),

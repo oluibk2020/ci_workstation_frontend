@@ -15,6 +15,8 @@ export const authService = {
     apiFetch("/auth/register", { method: "POST", body: { name, email, password } }),
   login: ({ email, password }) => apiFetch("/auth/login", { method: "POST", body: { email, password } }),
   me: () => apiFetch("/auth/me"),
+  updateProfile: ({ name, profileImageUrl }) =>
+    apiFetch("/auth/me", { method: "PATCH", body: { name, profileImageUrl } }),
   // Not yet reachable on the backend — see note above.
   forgotPassword: (email) => apiFetch("/auth/forgot-password", { method: "POST", body: { email } }),
   resetPassword: (token, password) =>

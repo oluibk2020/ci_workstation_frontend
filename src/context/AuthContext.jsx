@@ -91,6 +91,17 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  // Merges fresh fields (e.g. after PATCH /auth/me, or a re-fetch of
+  // verificationStatus) into the stored session without a full re-login.
+  const updateUser = useCallback((patch) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const merged = { ...prev, ...patch };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      return merged;
+    });
+  }, []);
+
   const value = {
     user,
     role: user?.role ?? null,
@@ -101,6 +112,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

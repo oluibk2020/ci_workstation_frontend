@@ -20,11 +20,23 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import ClientDashboardPage from "./pages/client/ClientDashboardPage";
+import VerificationPage from "./pages/client/VerificationPage";
+import MySessionsPage from "./pages/client/MySessionsPage";
+import ProfilePage from "./pages/client/ProfilePage";
+import NotificationsPage from "./pages/client/NotificationsPage";
+import PaymentHistoryPage from "./pages/client/PaymentHistoryPage";
 import WalletPage from "./pages/client/WalletPage";
 import QRPage from "./pages/client/QRPage";
+import QRResolvePage from "./pages/scan/QRResolvePage";
 import BookWorkstationPage from "./pages/client/BookWorkstationPage";
 import MyBookingsPage from "./pages/client/MyBookingsPage";
 import StaffDashboardPage from "./pages/staff/StaffDashboardPage";
+import StaffScanPage from "./pages/staff/StaffScanPage";
+import VerificationQueuePage from "./pages/staff/VerificationQueuePage";
+import TodaysBookingsPage from "./pages/staff/TodaysBookingsPage";
+import ReassignmentHistoryPage from "./pages/admin/ReassignmentHistoryPage";
+import PaymentsWalletCreditsPage from "./pages/admin/PaymentsWalletCreditsPage";
+import ReportsPage from "./pages/admin/ReportsPage";
 import StaffSeatsPage from "./pages/staff/StaffSeatsPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminClientsPage from "./pages/admin/AdminClientsPage";
@@ -65,10 +77,11 @@ export default function App() {
           <Route path="/client/book" element={<BookWorkstationPage />} />
           <Route path="/client/bookings" element={<MyBookingsPage />} />
           <Route path="/client/gift-a-seat" element={<BookWorkstationPage />} />
-          <Route path="/client/sessions" element={<ComingSoon title="My sessions" phase="Phase 6 — Sessions" />} />
-          <Route path="/client/transactions" element={<ComingSoon title="Payment history" phase="Phase 4 — Payments" />} />
-          <Route path="/client/notifications" element={<ComingSoon title="Notifications" phase="Phase 8 — Real-Time" />} />
-          <Route path="/client/profile" element={<ComingSoon title="Profile" phase="Phase 1 — Foundation" />} />
+          <Route path="/client/sessions" element={<MySessionsPage />} />
+          <Route path="/client/transactions" element={<PaymentHistoryPage />} />
+          <Route path="/client/notifications" element={<NotificationsPage />} />
+          <Route path="/client/profile" element={<ProfilePage />} />
+          <Route path="/client/verification" element={<VerificationPage />} />
         </Route>
       </Route>
 
@@ -76,10 +89,16 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={[ROLES.MANAGER]} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/staff/dashboard" element={<StaffDashboardPage />} />
-          <Route path="/staff/scan" element={<ComingSoon title="Scan QR" phase="Phase 5 — QR" />} />
-          <Route path="/staff/verifications" element={<ComingSoon title="Verification requests" phase="Phase 5 — QR" />} />
-          <Route path="/staff/bookings" element={<ComingSoon title="Today's bookings" phase="Phase 3 — Booking" />} />
-          <Route path="/staff/reassignments" element={<ComingSoon title="Reassignment requests" phase="Phase 3 — Booking" />} />
+          <Route path="/staff/scan" element={<StaffScanPage />} />
+          <Route
+            path="/staff/verifications"
+            element={<VerificationQueuePage />}
+          />
+          <Route path="/staff/bookings" element={<TodaysBookingsPage />} />
+          <Route
+            path="/staff/reassignments"
+            element={<ReassignmentHistoryPage />}
+          />
           <Route path="/staff/seats" element={<StaffSeatsPage />} />
         </Route>
       </Route>
@@ -89,19 +108,48 @@ export default function App() {
         <Route element={<DashboardLayout />}>
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/admin/clients" element={<AdminClientsPage />} />
-          <Route path="/admin/verifications" element={<ComingSoon title="Verification requests" phase="Phase 5 — QR" />} />
+          <Route
+            path="/admin/verifications"
+            element={<VerificationQueuePage />}
+          />
           <Route path="/admin/branches" element={<AdminBranchesPage />} />
-          <Route path="/admin/workstations" element={<AdminWorkstationsPage />} />
+          <Route
+            path="/admin/workstations"
+            element={<AdminWorkstationsPage />}
+          />
           <Route path="/admin/seats" element={<AdminSeatsPage />} />
-          <Route path="/admin/bookings" element={<ComingSoon title="Bookings" phase="Phase 3 — Booking" />} />
-          <Route path="/admin/reassignments" element={<ComingSoon title="Reassignment requests" phase="Phase 3 — Booking" />} />
-          <Route path="/admin/payments" element={<ComingSoon title="Payments & wallet credits" phase="Phase 4 — Payments" />} />
-          <Route path="/admin/reports" element={<ComingSoon title="Reports" phase="Phase 7 — Analytics" />} />
-          <Route path="/admin/staff" element={<ComingSoon title="Staff" phase="Phase 1 — Foundation" />} />
-          <Route path="/admin/settings" element={<ComingSoon title="Settings" phase="Phase 1 — Foundation" />} />
-          <Route path="/admin/audit-logs" element={<ComingSoon title="Audit logs" phase="Phase 7 — Analytics" />} />
+          <Route path="/admin/bookings" element={<TodaysBookingsPage />} />
+          <Route
+            path="/admin/reassignments"
+            element={<ReassignmentHistoryPage />}
+          />
+          <Route
+            path="/admin/payments"
+            element={<PaymentsWalletCreditsPage />}
+          />
+          <Route path="/admin/reports" element={<ReportsPage />} />
+          <Route
+            path="/admin/staff"
+            element={<ComingSoon title="Staff" phase="Phase 1 — Foundation" />}
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <ComingSoon title="Settings" phase="Phase 1 — Foundation" />
+            }
+          />
+          <Route
+            path="/admin/audit-logs"
+            element={
+              <ComingSoon title="Audit logs" phase="Phase 7 — Analytics" />
+            }
+          />
         </Route>
       </Route>
+
+      {/* ---------- QR scan result (standalone — this is the literal URL
+           encoded in the QR image, no layout chrome needed) ---------- */}
+      <Route path="/u/:token" element={<QRResolvePage />} />
 
       {/* ---------- Fallback ---------- */}
       <Route path="*" element={<Navigate to="/" replace />} />

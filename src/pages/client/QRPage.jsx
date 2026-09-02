@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { QrCode, RefreshCw, ShieldOff, Copy, Check } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { qrService } from "../../services/qrService";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
@@ -8,6 +9,14 @@ import Badge from "../../components/common/Badge";
  * The one feature on the backend that is fully implemented, confirmed
  * working, and requires no Paystack/SMTP credentials to use — QR
  * generation is wired for real here.
+ *
+ * The QR image itself is rendered with `qrcode.react` — entirely
+ * client-side (SVG, no network call). An earlier version of this page
+ * called a third-party API (api.qrserver.com) to generate the image over
+ * the network, which is fragile: it silently fails to load if that
+ * domain is blocked, slow, rate-limited, or down on someone's network,
+ * and it also meant sending the QR's raw token to an outside service for
+ * no good reason. This version has no such dependency.
  *
  * REAL LIMITATION, not a frontend gap (see docs/BACKEND_CODE_REVIEW.md):
  * GET /qr/me only confirms an active QR *exists* (status, generatedAt) —
@@ -99,13 +108,9 @@ export default function QRPage() {
           <p className="text-sm text-slate-400">Checking your QR status...</p>
         ) : qrUrl ? (
           <div className="flex flex-col items-center gap-4 text-center">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrUrl)}`}
-              alt="Your QR pass"
-              className="rounded-xl border border-[var(--color-line)]"
-              width={220}
-              height={220}
-            />
+            <div className="rounded-xl border border-[var(--color-line)] p-4">
+              <QRCodeSVG value={qrUrl} size={220} />
+            </div>
             <div className="flex items-center gap-2">
               <Badge status="ACTIVE" />
               <span className="text-xs text-slate-400">Show this to staff at check-in</span>

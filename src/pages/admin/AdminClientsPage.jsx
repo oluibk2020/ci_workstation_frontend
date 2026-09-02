@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, ShieldCheck, ShieldOff, Ban, RotateCcw, Loader2 } from "lucide-react";
+import { Search, ShieldCheck, ShieldOff, Ban, RotateCcw, Loader2, Wallet } from "lucide-react";
 import { adminUserService } from "../../services/adminUserService";
 import { useAuth } from "../../context/AuthContext";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
+import Modal from "../../components/common/Modal";
 import { ROLES, USER_STATUS } from "../../utils/constants";
 
 // Wired to the real backend — GET/PATCH /api/v1/admin/users (confirmed
-// working set of endpoints; see docs/BACKEND_CODE_REVIEW.md). Wallet cash
-// crediting was intentionally dropped from this page: their schema
-// supports a CASH_FUNDING ledger type, but no endpoint anywhere
-// implements it yet (see docs/PATCH_NOTES.md) — nothing real to wire it to.
+// working set of endpoints; see docs/BACKEND_CODE_REVIEW.md). Cash
+// crediting is now real too — see docs/PATCH_NOTES.md's fifth pass —
+// reusing the real walletService.creditWallet on the backend.
 export default function AdminClientsPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
@@ -18,6 +18,14 @@ export default function AdminClientsPage() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [busyUserId, setBusyUserId] = useState(null);
+
+  const [creditingUser, setCreditingUser] = useState(null);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditedAmount, setCreditedAmount] = useState(0);
+  const [creditReason, setCreditReason] = useState("");
+  const [creditSubmitting, setCreditSubmitting] = useState(false);
+  const [creditError, setCreditError] = useState("");
+  const [creditSuccess, setCreditSuccess] = useState(false);
 
   const loadUsers = useCallback(async (search) => {
     setIsLoading(true);
@@ -61,6 +69,39 @@ export default function AdminClientsPage() {
     }
   }
 
+  function openCreditModal(user) {
+    setCreditingUser(user);
+    setCreditAmount("");
+    setCreditedAmount(0);
+    setCreditReason("");
+    setCreditError("");
+    setCreditSuccess(false);
+  }
+
+  async function handleCreditSubmit(e) {
+    e.preventDefault();
+    const amount = Number(creditAmount);
+    if (!amount || amount <= 0) return;
+    setCreditSubmitting(true);
+    setCreditError("");
+    try {
+      await adminUserService.creditWallet(creditingUser.id, amount, creditReason.trim() || undefined);
+      // BUG FIX: was showing the confirmation using `creditAmount` after
+      // it had already been reset to "" on the next line — always showed
+      // "₦0 credited successfully." regardless of what was actually sent.
+      // The real backend call above always used the correct `amount`, so
+      // this was purely a display bug, not a data problem.
+      setCreditedAmount(amount);
+      setCreditSuccess(true);
+      setCreditAmount("");
+      setCreditReason("");
+    } catch (err) {
+      setCreditError(err.message || "Couldn't credit this wallet.");
+    } finally {
+      setCreditSubmitting(false);
+    }
+  }
+
   const rows = users.filter((u) => u.role !== ROLES.ADMIN);
 
   return (
@@ -69,7 +110,8 @@ export default function AdminClientsPage() {
         <h1 className="text-xl font-bold text-[var(--color-primary)]">Clients</h1>
         <p className="text-sm text-slate-500">
           Everyone signs up as a Client. Promote someone to Staff here if they need to verify QR
-          codes and check people in, or ban an account that's misusing the platform.
+          codes and check people in, ban an account that's misusing the platform, or credit a
+          client's wallet for cash received in person.
         </p>
       </div>
 
@@ -89,8 +131,8 @@ export default function AdminClientsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-[var(--color-line)] bg-white">
+        <table className="w-full min-w-[800px] text-sm">
           <thead>
             <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
               <th className="px-5 py-3">Name</th>
@@ -119,6 +161,12 @@ export default function AdminClientsPage() {
                   <div className="flex justify-end gap-2">
                     {u.id !== currentUser?.id && (
                       <>
+                        {u.role === ROLES.CLIENT && (
+                          <Button size="sm" variant="ghost" onClick={() => openCreditModal(u)}>
+                            <Wallet size={14} />
+                            Credit Wallet
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
@@ -159,6 +207,58 @@ export default function AdminClientsPage() {
         {isLoading && <p className="p-5 text-sm text-slate-400">Loading...</p>}
         {!isLoading && rows.length === 0 && <p className="p-5 text-sm text-slate-400">No accounts match your search.</p>}
       </div>
+
+      <Modal open={!!creditingUser} onClose={() => setCreditingUser(null)} title={`Credit ${creditingUser?.name}'s wallet`}>
+        {creditSuccess ? (
+          <div className="space-y-4 text-center">
+            <p className="text-sm text-[var(--color-success)]">
+              ₦{creditedAmount.toLocaleString()} credited successfully.
+            </p>
+            <Button className="w-full" onClick={() => setCreditingUser(null)}>
+              Done
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={handleCreditSubmit} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-slate-700">Amount received in cash (₦)</label>
+              <input
+                type="number"
+                min="100"
+                step="100"
+                required
+                autoFocus
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
+                placeholder="e.g. 20000"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700">Reason (optional)</label>
+              <input
+                value={creditReason}
+                onChange={(e) => setCreditReason(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
+                placeholder="e.g. Cash payment at front desk"
+              />
+            </div>
+            <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+              This is only for authorized cash payments already received in person. It creates a
+              CASH_FUNDING ledger entry and is recorded against your account.
+            </p>
+            {creditError && <p className="text-sm text-[var(--color-danger)]">{creditError}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setCreditingUser(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creditSubmitting}>
+                {creditSubmitting ? "Crediting..." : "Credit wallet"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }
