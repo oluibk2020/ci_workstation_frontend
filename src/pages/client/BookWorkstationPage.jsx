@@ -175,7 +175,13 @@ export default function BookWorkstationPage() {
     (bookingFor === "SELF" || (beneficiaryEmail && emailCheck && (emailCheck.exists || beneficiaryName.trim())));
 
   async function handleSubmit() {
-    setSubmitting(true);
+    
+    if (!canAffordBooking) {
+      return setSubmitError("Insufficient wallet balance. Please top up your wallet first.");
+    }
+      
+      setSubmitting(true);
+
     setSubmitError("");
     try {
       const payload = {
@@ -231,16 +237,20 @@ export default function BookWorkstationPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-[var(--color-primary)]">Book a Workstation</h1>
+        <h1 className="text-xl font-bold text-[var(--color-primary)]">
+          Book a Workstation
+        </h1>
         <p className="text-sm text-slate-500">
-          Pricing is a flat rate per day — no discount for booking more days. Your wallet is debited
-          immediately when the booking is confirmed.
+          Pricing is a flat rate per day — no discount for booking more days.
+          Your wallet is debited immediately when the booking is confirmed.
         </p>
       </div>
 
       {/* ---------- Branch & workstation ---------- */}
       <section className="space-y-4 rounded-2xl border border-[var(--color-line)] bg-white p-5">
-        <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">1. Where</p>
+        <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
+          1. Where
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="text-sm font-medium text-slate-700">Branch</label>
@@ -258,7 +268,9 @@ export default function BookWorkstationPage() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700">Workstation type</label>
+            <label className="text-sm font-medium text-slate-700">
+              Workstation type
+            </label>
             <select
               value={workstationId}
               onChange={(e) => handleWorkstationChange(e.target.value)}
@@ -278,7 +290,9 @@ export default function BookWorkstationPage() {
 
       {/* ---------- Self or gift ---------- */}
       <section className="space-y-4 rounded-2xl border border-[var(--color-line)] bg-white p-5">
-        <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">2. Who's it for</p>
+        <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
+          2. Who's it for
+        </p>
         <div className="flex gap-2">
           {["SELF", "OTHER"].map((opt) => (
             <button
@@ -301,7 +315,9 @@ export default function BookWorkstationPage() {
         {bookingFor === "OTHER" && (
           <div className="space-y-3 border-t border-[var(--color-line)] pt-4">
             <div>
-              <label className="text-sm font-medium text-slate-700">Recipient's email</label>
+              <label className="text-sm font-medium text-slate-700">
+                Recipient's email
+              </label>
               <div className="mt-1.5 flex gap-2">
                 <input
                   type="email"
@@ -313,18 +329,32 @@ export default function BookWorkstationPage() {
                   className="w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
                   placeholder="them@example.com"
                 />
-                <Button variant="outline" size="sm" onClick={handleCheckEmail} disabled={emailChecking || !beneficiaryEmail.trim()}>
-                  {emailChecking ? <Loader2 size={14} className="animate-spin" /> : "Check"}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCheckEmail}
+                  disabled={emailChecking || !beneficiaryEmail.trim()}
+                >
+                  {emailChecking ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    "Check"
+                  )}
                 </Button>
               </div>
             </div>
 
-            {emailCheckError && <p className="text-sm text-[var(--color-danger)]">{emailCheckError}</p>}
+            {emailCheckError && (
+              <p className="text-sm text-[var(--color-danger)]">
+                {emailCheckError}
+              </p>
+            )}
 
             {emailCheck?.exists && (
               <p className="flex items-center gap-1.5 text-sm text-[var(--color-success)]">
                 <CheckCircle2 size={16} />
-                {emailCheck.name} already has an account — they'll be booked directly.
+                {emailCheck.name} already has an account — they'll be booked
+                directly.
               </p>
             )}
 
@@ -332,10 +362,13 @@ export default function BookWorkstationPage() {
               <div className="space-y-3">
                 <p className="flex items-center gap-1.5 text-sm text-amber-700">
                   <XCircle size={16} />
-                  No account found for this email. We'll create one and invite them.
+                  No account found for this email. We'll create one and invite
+                  them.
                 </p>
                 <div>
-                  <label className="text-sm font-medium text-slate-700">Their name</label>
+                  <label className="text-sm font-medium text-slate-700">
+                    Their name
+                  </label>
                   <input
                     value={beneficiaryName}
                     onChange={(e) => setBeneficiaryName(e.target.value)}
@@ -344,8 +377,8 @@ export default function BookWorkstationPage() {
                   />
                 </div>
                 <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-                  They'll get an email with their booking details and instructions to sign in with
-                  Google using this email address.
+                  They'll get an email with their booking details and
+                  instructions to sign in with Google using this email address.
                 </p>
               </div>
             )}
@@ -355,7 +388,9 @@ export default function BookWorkstationPage() {
 
       {/* ---------- Dates ---------- */}
       <section className="space-y-4 rounded-2xl border border-[var(--color-line)] bg-white p-5">
-        <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">3. Which days</p>
+        <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
+          3. Which days
+        </p>
         <div className="flex gap-2">
           {["CONTINUOUS", "FLEXIBLE"].map((opt) => (
             <button
@@ -419,7 +454,12 @@ export default function BookWorkstationPage() {
                 onChange={(e) => setFlexInput(e.target.value)}
                 className="w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
               />
-              <Button variant="outline" size="sm" onClick={addFlexDate} disabled={!flexInput}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addFlexDate}
+                disabled={!flexInput}
+              >
                 Add
               </Button>
             </div>
@@ -431,7 +471,10 @@ export default function BookWorkstationPage() {
                     className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
                   >
                     {formatDateLabel(d)}
-                    <button onClick={() => removeFlexDate(d)} aria-label={`Remove ${d}`}>
+                    <button
+                      onClick={() => removeFlexDate(d)}
+                      aria-label={`Remove ${d}`}
+                    >
                       <X size={12} />
                     </button>
                   </span>
@@ -443,83 +486,123 @@ export default function BookWorkstationPage() {
 
         {branch && requestedDates.length > 0 && (
           <p className="text-sm text-slate-500">
-            {requestedDates.length} operating day{requestedDates.length === 1 ? "" : "s"} at {branch.name}
+            {requestedDates.length} operating day
+            {requestedDates.length === 1 ? "" : "s"} at {branch.name}
             {nonOperatingFlexDates.length > 0 && (
               <span className="text-[var(--color-warning)]">
                 {" "}
-                — {nonOperatingFlexDates.map(formatDateLabel).join(", ")} skipped (not an operating day)
+                — {nonOperatingFlexDates.map(formatDateLabel).join(", ")}{" "}
+                skipped (not an operating day)
               </span>
             )}
           </p>
         )}
         {exceedsMaxDays && (
           <p className="text-sm text-[var(--color-danger)]">
-            That's {requestedDates.length} days — bookings can't exceed {MAX_BOOKING_DAYS} operating days.
+            That's {requestedDates.length} days — bookings can't exceed{" "}
+            {MAX_BOOKING_DAYS} operating days.
           </p>
         )}
       </section>
 
       {/* ---------- Availability & seat ---------- */}
-      {branchId && workstationId && requestedDates.length > 0 && !exceedsMaxDays && (
-        <section className="space-y-4 rounded-2xl border border-[var(--color-line)] bg-white p-5">
-          <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">4. Pick a seat</p>
+      {branchId &&
+        workstationId &&
+        requestedDates.length > 0 &&
+        !exceedsMaxDays && (
+          <section className="space-y-4 rounded-2xl border border-[var(--color-line)] bg-white p-5">
+            <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
+              4. Pick a seat
+            </p>
 
-          <Button variant="outline" size="sm" onClick={handleCheckAvailability} disabled={availabilityLoading}>
-            {availabilityLoading ? <Loader2 size={14} className="animate-spin" /> : "Check availability"}
-          </Button>
-
-          {availabilityError && <p className="text-sm text-[var(--color-danger)]">{availabilityError}</p>}
-
-          {availability && (
-            <div className="space-y-2">
-              {availableSeats.length === 0 ? (
-                <p className="text-sm text-slate-400">No seats are free across all the days you selected.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCheckAvailability}
+              disabled={availabilityLoading}
+            >
+              {availabilityLoading ? (
+                <Loader2 size={14} className="animate-spin" />
               ) : (
-                availableSeats.map((seat) => (
-                  <label
-                    key={seat.id}
-                    className={`flex cursor-pointer items-center justify-between rounded-lg border px-4 py-3 text-sm transition-colors ${
-                      selectedSeatId === seat.id
-                        ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
-                        : "border-[var(--color-line)] hover:border-slate-300"
-                    }`}
-                  >
-                    <span className="font-medium text-[var(--color-primary)]">Seat {seat.seatId}</span>
-                    <input
-                      type="radio"
-                      name="seat"
-                      checked={selectedSeatId === seat.id}
-                      onChange={() => setSelectedSeatId(seat.id)}
-                    />
-                  </label>
-                ))
+                "Check availability"
               )}
-            </div>
-          )}
-        </section>
-      )}
+            </Button>
+
+            {availabilityError && (
+              <p className="text-sm text-[var(--color-danger)]">
+                {availabilityError}
+              </p>
+            )}
+
+            {availability && (
+              <div className="space-y-2">
+                {availableSeats.length === 0 ? (
+                  <p className="text-sm text-slate-400">
+                    No seats are free across all the days you selected.
+                  </p>
+                ) : (
+                  availableSeats.map((seat) => (
+                    <label
+                      key={seat.id}
+                      className={`flex cursor-pointer items-center justify-between rounded-lg border px-4 py-3 text-sm transition-colors ${
+                        selectedSeatId === seat.id
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
+                          : "border-[var(--color-line)] hover:border-slate-300"
+                      }`}
+                    >
+                      <span className="font-medium text-[var(--color-primary)]">
+                        Seat {seat.seatId}
+                      </span>
+                      <input
+                        type="radio"
+                        name="seat"
+                        checked={selectedSeatId === seat.id}
+                        onChange={() => setSelectedSeatId(seat.id)}
+                      />
+                    </label>
+                  ))
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
       {/* ---------- Review & submit ---------- */}
       {selectedSeatId && (
         <section className="space-y-4 rounded-2xl border border-[var(--color-line)] bg-white p-5">
-          <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">5. Review</p>
+          <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
+            5. Review
+          </p>
           <div className="space-y-1.5 text-sm text-slate-600">
             <p>
-              {requestedDates.length} day{requestedDates.length === 1 ? "" : "s"} × ₦
+              {requestedDates.length} day
+              {requestedDates.length === 1 ? "" : "s"} × ₦
               {Number(workstation.pricePerDay).toLocaleString()}/day
             </p>
             <p className="text-lg font-bold text-[var(--color-primary)]">
               Total: ₦{totalPrice.toLocaleString()}
             </p>
-            <p className={canAffordBooking ? "text-slate-400" : "text-[var(--color-danger)]"}>
+            <p
+              className={
+                canAffordBooking
+                  ? "text-slate-400"
+                  : "text-[var(--color-danger)]"
+              }
+            >
               Wallet balance: ₦{balance.toLocaleString()}
               {!canAffordBooking && " — insufficient, top up your wallet first"}
             </p>
           </div>
 
-          {submitError && <p className="text-sm text-[var(--color-danger)]">{submitError}</p>}
+          {submitError && (
+            <p className="text-sm text-[var(--color-danger)]">{submitError}</p>
+          )}
 
-          <Button className="w-full" onClick={handleSubmit} disabled={!canSubmit || submitting}>
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={!canSubmit || submitting || !canAffordBooking}
+          >
             {submitting ? "Confirming..." : "Confirm booking"}
           </Button>
         </section>
