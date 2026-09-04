@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { authService } from "../services/authService";
 
 /**
@@ -93,7 +99,9 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async ({ name, email, password }) => {
     const result = await authService.register({ name, email, password });
-    const { user: newUser, token } = normalizeAuthResult(result, { fromRegister: true });
+    const { user: newUser, token } = normalizeAuthResult(result, {
+      fromRegister: true,
+    });
     const stored = { ...newUser, token };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     setUser(stored);
@@ -103,6 +111,35 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setUser(null);
+  }, []);
+
+  // BUG FIX: role/status were only ever re-validated against the server
+  // once, on initial page load. If an Admin changed someone's role or
+  // banned them while that person already had the app open in a tab,
+  // nothing re-checked it — ProtectedRoute kept trusting the stale
+  // cached role indefinitely, until the next full page refresh. The
+  // backend itself was already fixed to re-check on every API request
+  // (see authMiddleware.js), so no real data/action was ever actually
+  // exposed — but the frontend UI (sidebar, route access) could stay
+  // wrong-looking for an open session. ProtectedRoute now calls this on
+  // every protected-route entry to close that window.
+  const refreshUser = useCallback(async () => {
+    try {
+      const { user: freshUser } = await authService.me();
+      setUser((prev) => {
+        if (!prev) return prev;
+        const merged = { ...prev, ...freshUser };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        return merged;
+      });
+      return freshUser;
+    } catch {
+      // Token invalid/expired/account gone — same handling as the
+      // initial-load check above.
+      localStorage.removeItem(STORAGE_KEY);
+      setUser(null);
+      return null;
+    }
   }, []);
 
   // Merges fresh fields (e.g. after PATCH /auth/me, or a re-fetch of
@@ -128,6 +165,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     updateUser,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

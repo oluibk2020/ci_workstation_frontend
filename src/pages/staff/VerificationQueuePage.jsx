@@ -53,7 +53,11 @@ export default function VerificationQueuePage() {
     setActionLoading(true);
     setActionError("");
     try {
-      await verificationService.review(rejecting.id, false, rejectionReason.trim());
+      await verificationService.review(
+        rejecting.id,
+        false,
+        rejectionReason.trim(),
+      );
       setRejecting(null);
       setRejectionReason("");
       await load();
@@ -64,17 +68,26 @@ export default function VerificationQueuePage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-slate-400">Loading pending verifications...</p>;
+  if (loading)
+    return (
+      <p className="text-sm text-slate-400">Loading pending verifications...</p>
+    );
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-[var(--color-primary)]">Verification Requests</h1>
-        <p className="text-sm text-slate-500">Review submitted ID documents before someone's first check-in.</p>
+        <h1 className="text-xl font-bold text-[var(--color-primary)]">
+          Verification Requests
+        </h1>
+        <p className="text-sm text-slate-500">
+          Review submitted ID documents before someone's first check-in.
+        </p>
       </div>
 
       {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
-      {actionError && <p className="text-sm text-[var(--color-danger)]">{actionError}</p>}
+      {actionError && (
+        <p className="text-sm text-[var(--color-danger)]">{actionError}</p>
+      )}
 
       {items.length === 0 && !error && (
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[var(--color-line)] bg-white/60 px-6 py-16 text-center">
@@ -85,23 +98,37 @@ export default function VerificationQueuePage() {
 
       <div className="space-y-4">
         {items.map((v) => (
-          <div key={v.id} className="rounded-2xl border border-[var(--color-line)] bg-white p-5">
+          <div
+            key={v.id}
+            className="rounded-2xl border border-[var(--color-line)] bg-white p-5"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-primary)] text-white">
                   <User size={18} />
                 </div>
                 <div>
-                  <p className="font-semibold text-[var(--color-primary)]">{v.user.name}</p>
+                  <p className="font-semibold text-[var(--color-primary)]">
+                    {v.user.name}
+                  </p>
                   <p className="text-xs text-slate-400">{v.user.email}</p>
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setRejecting(v)} disabled={actionLoading}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRejecting(v)}
+                  disabled={actionLoading}
+                >
                   <XCircle size={14} />
                   Reject
                 </Button>
-                <Button size="sm" onClick={() => handleApprove(v.id)} disabled={actionLoading}>
+                <Button
+                  size="sm"
+                  onClick={() => handleApprove(v.id)}
+                  disabled={actionLoading}
+                >
                   <CheckCircle2 size={14} />
                   Approve
                 </Button>
@@ -109,24 +136,62 @@ export default function VerificationQueuePage() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-3 border-t border-[var(--color-line)] pt-4">
-              {v.documents.map((doc) => (
-                <a
-                  key={doc.id}
-                  href={doc.documentUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block overflow-hidden rounded-lg border border-[var(--color-line)]"
-                >
-                  <img src={doc.documentUrl} alt={doc.type} className="h-24 w-32 object-cover" />
-                  <p className="bg-slate-50 px-2 py-1 text-center text-xs text-slate-500">{doc.type}</p>
-                </a>
-              ))}
+              {v.documents.map((doc) => {
+                // SECURITY FIX: never render an unvalidated URL as a
+                // clickable link or image source. The backend now
+                // rejects anything that isn't a real base64 image data
+                // URI at submission time, but this is defense-in-depth —
+                // a document submitted before that fix, or reaching this
+                // page any other way, should still never become a
+                // javascript: URI a reviewer could accidentally trigger
+                // by clicking.
+                const isSafeImage =
+                  /^data:image\/(png|jpe?g|gif|webp);base64,/.test(
+                    doc.documentUrl || "",
+                  );
+
+                if (!isSafeImage) {
+                  return (
+                    <div
+                      key={doc.id}
+                      className="flex h-24 w-32 flex-col items-center justify-center rounded-lg border border-[var(--color-line)] bg-slate-50 text-center text-xs text-slate-400"
+                    >
+                      Can't preview
+                      <br />
+                      {doc.type}
+                    </div>
+                  );
+                }
+
+                return (
+                  <a
+                    key={doc.id}
+                    href={doc.documentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block overflow-hidden rounded-lg border border-[var(--color-line)]"
+                  >
+                    <img
+                      src={doc.documentUrl}
+                      alt={doc.type}
+                      className="h-24 w-32 object-cover"
+                    />
+                    <p className="bg-slate-50 px-2 py-1 text-center text-xs text-slate-500">
+                      {doc.type}
+                    </p>
+                  </a>
+                );
+              })}
             </div>
           </div>
         ))}
       </div>
 
-      <Modal open={!!rejecting} onClose={() => setRejecting(null)} title={`Reject ${rejecting?.user.name}'s request`}>
+      <Modal
+        open={!!rejecting}
+        onClose={() => setRejecting(null)}
+        title={`Reject ${rejecting?.user.name}'s request`}
+      >
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium text-slate-700">Reason</label>
@@ -142,7 +207,11 @@ export default function VerificationQueuePage() {
             <Button variant="ghost" onClick={() => setRejecting(null)}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={handleReject} disabled={actionLoading || !rejectionReason.trim()}>
+            <Button
+              variant="danger"
+              onClick={handleReject}
+              disabled={actionLoading || !rejectionReason.trim()}
+            >
               {actionLoading ? "Rejecting..." : "Reject request"}
             </Button>
           </div>

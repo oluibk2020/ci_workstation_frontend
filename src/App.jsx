@@ -4,7 +4,6 @@ import PublicLayout from "./components/layout/PublicLayout";
 import AuthLayout from "./components/layout/AuthLayout";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
-import ComingSoon from "./components/common/ComingSoon";
 
 import LandingPage from "./pages/public/LandingPage";
 import AboutPage from "./pages/public/AboutPage";

@@ -16,8 +16,17 @@ import { apiFetch } from "./api";
  * null if they have none today — that's a valid, non-error response).
  */
 export const qrService = {
-  generate: () => apiFetch("/qr/generate", { method: "POST" }),
-  getCurrent: () => apiFetch("/qr/me"),
+  // BUG FIX: the backend wraps both of these under a `qrCode` key
+  // (`{ data: { qrCode: {...} } }`), matching its own convention
+  // elsewhere. Neither was unwrapped here, so QRPage.jsx's
+  // `result.qrUrl` was always undefined — the rendered QR code encoded
+  // nothing usable at all. Worse for getCurrent(): `{ qrCode: null }` is
+  // still a truthy object, so QRPage.jsx's `status ? ... : ...` check
+  // always thought an active QR existed, even for a brand-new user who
+  // had never generated one.
+  generate: () =>
+    apiFetch("/qr/generate", { method: "POST" }).then((r) => r.qrCode),
+  getCurrent: () => apiFetch("/qr/me").then((r) => r.qrCode),
   revoke: () => apiFetch("/qr/revoke", { method: "PATCH" }),
   // Public — no auth required, since staff scanning a client's QR aren't
   // authenticated as that client.

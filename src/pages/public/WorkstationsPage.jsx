@@ -1,13 +1,69 @@
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { LogIn } from "lucide-react";
+import { LogIn, Loader2 } from "lucide-react";
 import Eyebrow from "../../components/common/Eyebrow";
 import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import { useCatalog } from "../../context/CatalogContext";
 import { SEAT_STATUS } from "../../utils/constants";
+import { bookingService } from "../../services/bookingService";
+import { todayISO } from "../../utils/businessDate";
 
+/**
+ * "user should see all available workstations and booked workstations
+ * [before booking]" — this page now shows real, live availability for
+ * today (computed from the same /availability endpoint the booking flow
+ * itself uses), not just a seat's own ACTIVE/INACTIVE enabled-state.
+ *
+ * Explicitly filters to ACTIVE seats only, regardless of viewer role —
+ * CatalogContext now returns every status (including INACTIVE) when the
+ * viewer is Super Admin, which is correct for Admin management pages but
+ * would be wrong here: an admin browsing this public catalog while logged
+ * in should see exactly what a client sees, nothing extra.
+ */
 export default function WorkstationsPage() {
-  const { seatsWithDetails, seatsRequireAuth, workstations } = useCatalog();
+  const { seatsWithDetails, seatsRequireAuth, workstations, branches } = useCatalog();
+  const [todaysAvailability, setTodaysAvailability] = useState({}); // seatId -> "AVAILABLE" | "BOOKED"
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+
+  const activeSeats = useMemo(
+    () => seatsWithDetails.filter((seat) => seat.status === SEAT_STATUS.ACTIVE),
+    [seatsWithDetails]
+  );
+
+  useEffect(() => {
+    if (activeSeats.length === 0) return;
+
+    const workstationPairs = [
+      ...new Map(activeSeats.map((s) => [s.workstationId, { workstationId: s.workstationId, branchId: s.branchId }])).values(),
+    ];
+
+    let cancelled = false;
+    setLoadingAvailability(true);
+
+    const today = todayISO();
+
+    Promise.all(
+      workstationPairs.map(({ branchId, workstationId }) =>
+        bookingService
+          .getAvailability({ branchId, workstationId, startDate: today, endDate: today })
+          .then((result) => result.dates?.[0]?.seats || [])
+          .catch(() => [])
+      )
+    ).then((results) => {
+      if (cancelled) return;
+      const map = {};
+      results.flat().forEach((s) => {
+        map[s.id] = s.availability;
+      });
+      setTodaysAvailability(map);
+      setLoadingAvailability(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSeats]);
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-16 sm:py-20">
@@ -17,7 +73,7 @@ export default function WorkstationsPage() {
       </h1>
       <p className="mt-3 max-w-2xl text-slate-500">
         Every listing is a specific seat at a branch — bring your own laptop or computer to use
-        there.
+        there. Availability shown is for today; booking lets you pick any date.
       </p>
 
       {seatsRequireAuth ? (
@@ -41,26 +97,35 @@ export default function WorkstationsPage() {
         </div>
       ) : (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {seatsWithDetails.map((seat) => (
-            <div key={seat.id} className="flex flex-col rounded-2xl border border-[var(--color-line)] bg-white p-5">
-              <div className="flex items-center justify-between">
-                <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Seat {seat.seatId} · {seat.branchName}
-                </p>
-                <Badge status={seat.status} />
+          {activeSeats.map((seat) => {
+            const availability = todaysAvailability[seat.id];
+            return (
+              <div key={seat.id} className="flex flex-col rounded-2xl border border-[var(--color-line)] bg-white p-5">
+                <div className="flex items-center justify-between">
+                  <p className="font-mono-tight text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Seat {seat.seatId} · {seat.branchName}
+                  </p>
+                  {loadingAvailability && !availability ? (
+                    <Loader2 size={14} className="animate-spin text-slate-300" />
+                  ) : (
+                    <Badge status={availability === "BOOKED" ? "BOOKED_TODAY" : "AVAILABLE_TODAY"}>
+                      {availability === "BOOKED" ? "Booked today" : "Available today"}
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-3 text-lg font-semibold text-[var(--color-primary)]">{seat.workstationName}</p>
+                <div className="mt-5 flex items-center justify-between border-t border-[var(--color-line)] pt-4">
+                  <p className="font-mono-tight text-lg font-bold text-[var(--color-primary)]">
+                    ₦{seat.pricePerDay.toLocaleString()}/day
+                  </p>
+                  <Button as={Link} to="/register" size="sm">
+                    Book now
+                  </Button>
+                </div>
               </div>
-              <p className="mt-3 text-lg font-semibold text-[var(--color-primary)]">{seat.workstationName}</p>
-              <div className="mt-5 flex items-center justify-between border-t border-[var(--color-line)] pt-4">
-                <p className="font-mono-tight text-lg font-bold text-[var(--color-primary)]">
-                  ₦{seat.pricePerDay.toLocaleString()}/day
-                </p>
-                <Button as={Link} to="/register" size="sm" disabled={seat.status !== SEAT_STATUS.ACTIVE}>
-                  Book now
-                </Button>
-              </div>
-            </div>
-          ))}
-          {seatsWithDetails.length === 0 && workstations.length > 0 && (
+            );
+          })}
+          {activeSeats.length === 0 && workstations.length > 0 && (
             <p className="col-span-full text-sm text-slate-400">No seats have been added yet.</p>
           )}
         </div>
