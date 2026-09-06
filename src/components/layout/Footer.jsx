@@ -16,6 +16,7 @@ const COLUMNS = [
     links: [
       { to: "/about", label: "About" },
       { to: "/contact", label: "Contact" },
+      { to: "/house-rules", label: "House Rules" },
     ],
   },
   {
@@ -35,7 +36,8 @@ export default function Footer() {
           <div>
             <Logo />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-500">
-              A desk, a socket, and internet that doesn't drop. Bring your own laptop — we handle the rest.
+              A desk, a socket, and internet that doesn't drop. Bring your own
+              laptop — we handle the rest.
             </p>
           </div>
           {COLUMNS.map((col) => (
@@ -46,7 +48,10 @@ export default function Footer() {
               <ul className="mt-4 space-y-3">
                 {col.links.map((link) => (
                   <li key={link.to}>
-                    <Link to={link.to} className="text-sm text-slate-600 hover:text-[var(--color-accent)]">
+                    <Link
+                      to={link.to}
+                      className="text-sm text-slate-600 hover:text-[var(--color-accent)]"
+                    >
                       {link.label}
                     </Link>
                   </li>

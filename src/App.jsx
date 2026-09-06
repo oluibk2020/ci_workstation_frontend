@@ -12,6 +12,7 @@ import BranchesPage from "./pages/public/BranchesPage";
 import PricingPage from "./pages/public/PricingPage";
 import HowItWorksPage from "./pages/public/HowItWorksPage";
 import ContactPage from "./pages/public/ContactPage";
+import HouseRulesPage from "./pages/public/HouseRulesPage";
 
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -25,6 +26,7 @@ import ProfilePage from "./pages/client/ProfilePage";
 import NotificationsPage from "./pages/client/NotificationsPage";
 import PaymentHistoryPage from "./pages/client/PaymentHistoryPage";
 import WalletPage from "./pages/client/WalletPage";
+import PaymentCallbackPage from "./pages/client/PaymentCallbackPage";
 import QRPage from "./pages/client/QRPage";
 import QRResolvePage from "./pages/scan/QRResolvePage";
 import BookWorkstationPage from "./pages/client/BookWorkstationPage";
@@ -60,6 +62,7 @@ export default function App() {
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/house-rules" element={<HouseRulesPage />} />
       </Route>
 
       {/* ---------- Authentication (docs Section 6) ---------- */}
@@ -75,6 +78,7 @@ export default function App() {
         <Route element={<DashboardLayout />}>
           <Route path="/client/dashboard" element={<ClientDashboardPage />} />
           <Route path="/client/wallet" element={<WalletPage />} />
+          <Route path="/payment/callback" element={<PaymentCallbackPage />} />
           <Route path="/client/qr" element={<QRPage />} />
           <Route path="/client/book" element={<BookWorkstationPage />} />
           <Route path="/client/bookings" element={<MyBookingsPage />} />

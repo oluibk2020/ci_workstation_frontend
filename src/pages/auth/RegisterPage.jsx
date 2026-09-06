@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Button from "../../components/common/Button";
@@ -16,22 +16,31 @@ export default function RegisterPage() {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
-  async function handleGoogleSuccess(idToken) {
-    setError("");
-    setGoogleSubmitting(true);
-    try {
-      // Google sign-in silently creates the account on first use — no
-      // separate "register" step exists or is needed for it.
-      await loginWithGoogle(idToken);
-      navigate("/client/dashboard", { replace: true });
-    } catch (err) {
-      setError(
-        err.message || "Couldn't sign you up with Google. Please try again.",
-      );
-    } finally {
-      setGoogleSubmitting(false);
-    }
-  }
+  // BUG FIX: same issue as LoginPage.jsx — a plain function and inline
+  // arrow both got a new reference on every render (every keystroke in
+  // the form), which re-triggered GoogleSignInButton's effect and
+  // re-initialized the Google button from scratch each time.
+  const handleGoogleSuccess = useCallback(
+    async (idToken) => {
+      setError("");
+      setGoogleSubmitting(true);
+      try {
+        // Google sign-in silently creates the account on first use — no
+        // separate "register" step exists or is needed for it.
+        await loginWithGoogle(idToken);
+        navigate("/client/dashboard", { replace: true });
+      } catch (err) {
+        setError(
+          err.message || "Couldn't sign you up with Google. Please try again.",
+        );
+      } finally {
+        setGoogleSubmitting(false);
+      }
+    },
+    [loginWithGoogle, navigate],
+  );
+
+  const handleGoogleError = useCallback((msg) => setError(msg), []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -71,7 +80,7 @@ export default function RegisterPage() {
         <div className="flex justify-center">
           <GoogleSignInButton
             onSuccess={handleGoogleSuccess}
-            onError={(msg) => setError(msg)}
+            onError={handleGoogleError}
           />
         </div>
         {googleSubmitting && (

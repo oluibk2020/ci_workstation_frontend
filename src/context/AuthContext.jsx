@@ -15,6 +15,23 @@ import { authService } from "../services/authService";
  * constants.js, values match the backend exactly), account status, and
  * verification status.
  *
+ * DELIBERATE CHOICE — sessionStorage, not localStorage: requested
+ * directly, to test multiple roles side by side (e.g. Admin in one tab,
+ * Staff in another) without one login overwriting the other.
+ * localStorage is shared across every tab of the same browser for the
+ * same site — logging in as a second role in a new tab would silently
+ * hijack the first tab's session too, since they're both reading/writing
+ * the exact same stored value. sessionStorage is genuinely isolated per
+ * tab (per browsing context, more precisely), so each tab now keeps its
+ * own independent login.
+ *
+ * Real trade-off, not a free upgrade: a session no longer survives
+ * closing the tab/browser — sessionStorage is cleared when its tab
+ * closes, where localStorage persisted indefinitely ("stay logged in").
+ * For heavy multi-role testing this is normally the more useful default;
+ * reconsider before shipping to real end users if "stay logged in
+ * between visits" matters for them.
+ *
  * KNOWN BACKEND QUIRK — worked around here, not fixed there:
  * their register controller has a variable-naming bug (see
  * docs/BACKEND_CODE_REVIEW.md §1) that wraps the whole
@@ -44,7 +61,7 @@ export function AuthProvider({ children }) {
   // it against the backend (GET /auth/me) — clears it if the token is
   // invalid/expired rather than leaving a stale, wrong user in the UI.
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = sessionStorage.getItem(STORAGE_KEY);
     if (!stored) {
       setIsLoading(false);
       return;
@@ -55,7 +72,7 @@ export function AuthProvider({ children }) {
       cached = JSON.parse(stored);
       setUser(cached);
     } catch {
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
       setIsLoading(false);
       return;
     }
@@ -64,11 +81,11 @@ export function AuthProvider({ children }) {
       .me()
       .then(({ user: freshUser }) => {
         const merged = { ...cached, ...freshUser };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         setUser(merged);
       })
       .catch(() => {
-        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
         setUser(null);
       })
       .finally(() => setIsLoading(false));
@@ -78,7 +95,7 @@ export function AuthProvider({ children }) {
     const result = await authService.login({ email, password });
     const { user: loggedInUser, token } = normalizeAuthResult(result);
     const stored = { ...loggedInUser, token };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     setUser(stored);
     return stored;
   }, []);
@@ -92,7 +109,7 @@ export function AuthProvider({ children }) {
     const result = await authService.googleLogin(idToken);
     const { user: loggedInUser, token } = normalizeAuthResult(result);
     const stored = { ...loggedInUser, token };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     setUser(stored);
     return stored;
   }, []);
@@ -103,13 +120,13 @@ export function AuthProvider({ children }) {
       fromRegister: true,
     });
     const stored = { ...newUser, token };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     setUser(stored);
     return stored;
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
     setUser(null);
   }, []);
 
@@ -129,14 +146,14 @@ export function AuthProvider({ children }) {
       setUser((prev) => {
         if (!prev) return prev;
         const merged = { ...prev, ...freshUser };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         return merged;
       });
       return freshUser;
     } catch {
       // Token invalid/expired/account gone — same handling as the
       // initial-load check above.
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
       setUser(null);
       return null;
     }
@@ -148,7 +165,7 @@ export function AuthProvider({ children }) {
     setUser((prev) => {
       if (!prev) return prev;
       const merged = { ...prev, ...patch };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       return merged;
     });
   }, []);

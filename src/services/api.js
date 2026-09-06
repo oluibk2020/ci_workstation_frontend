@@ -8,33 +8,45 @@
  * Documented response envelope (Testing/Deployment/Maintenance Guide
  * §13/§23): { success, message, data } / { success, message, code }.
  *
- * REALITY CHECK (see docs/BACKEND_CODE_REVIEW.md §6): their actual
- * middleware/errorMiddleware.js is currently a stub. Every thrown error,
- * regardless of cause, becomes a flat HTTP 500 with shape
- * { error: "Internal Server Error..." } — a different key (`error`, not
- * `message`), no `code` ever, and the real thrown message (e.g. "Invalid
- * email or password.") is discarded. Only authMiddleware/roleMiddleware's
- * own 401/403 responses use the documented { success, message } shape.
- * apiFetch below handles both realities: it reads `.message` if present,
- * falls back to `.error` (their stub's actual key), and always attaches
- * the HTTP status so callers can tell "a real 401/403" apart from "their
- * error handling isn't finished yet and this 500 could mean anything."
+ * UPDATED (see docs/PATCH_NOTES.md — error-handling pass): their
+ * middleware/errorMiddleware.js was rewritten. It used to flatten every
+ * error to a fixed HTTP 500 with shape { error: "..." } regardless of
+ * cause, discarding the real thrown message entirely. It now recognizes
+ * known Prisma error types (mapping them to proper status codes) and
+ * treats a plain thrown Error as this codebase's own convention for an
+ * intentional, safe-to-show business-rule message — returned as
+ * { success: false, message } with a 400, not hidden behind a generic
+ * 500. `.message` is now always populated on every error response, so
+ * `isGenericServerError` below should no longer trigger under normal
+ * operation — kept as a defensive fallback rather than removed outright,
+ * in case a future, still-uncaught error type reaches the client without
+ * one.
  */
 
 // Backend confirmed running on port 1524 locally (docs/PATCH_NOTES.md).
 // It already versions its API under /api/v1 itself.
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:1524/api/v1";
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:1524/api/v1";
 
 function getToken() {
   try {
-    const stored = localStorage.getItem("workstation.auth");
+    // Must match AuthContext's STORAGE_KEY and storage type — it
+    // deliberately uses sessionStorage (per-tab sessions), not
+    // localStorage. Reading from the wrong one meant every authenticated
+    // request went out with no Authorization header, so GET /auth/me
+    // (called by ProtectedRoute right after login) always came back 401
+    // and the app immediately logged the user back out.
+    const stored = sessionStorage.getItem("workstation.auth");
     return stored ? JSON.parse(stored)?.token : null;
   } catch {
     return null;
   }
 }
 
-export async function apiFetch(path, { method = "GET", body, headers = {} } = {}) {
+export async function apiFetch(
+  path,
+  { method = "GET", body, headers = {} } = {},
+) {
   const token = getToken();
 
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -47,19 +59,24 @@ export async function apiFetch(path, { method = "GET", body, headers = {} } = {}
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const isJson = response.headers.get("content-type")?.includes("application/json");
+  const isJson = response.headers
+    .get("content-type")
+    ?.includes("application/json");
   const envelope = isJson ? await response.json() : null;
 
   if (!response.ok || envelope?.success === false) {
     const err = new Error(
-      envelope?.message || envelope?.error || `Request failed with status ${response.status}`
+      envelope?.message ||
+        envelope?.error ||
+        `Request failed with status ${response.status}`,
     );
     err.code = envelope?.code; // documented codes — INSUFFICIENT_BALANCE, SEAT_UNAVAILABLE, etc.
     err.status = response.status;
     // True whenever this was their generic error-middleware stub (no
     // code, no proper `.message` — only the `.error` fallback text) hit
     // rather than a real, documented business-rule error.
-    err.isGenericServerError = response.status === 500 && !envelope?.code && !envelope?.message;
+    err.isGenericServerError =
+      response.status === 500 && !envelope?.code && !envelope?.message;
     throw err;
   }
 

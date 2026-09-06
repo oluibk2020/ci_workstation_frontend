@@ -1,6 +1,13 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useAuth } from "./AuthContext";
 import { walletService } from "../services/walletService";
+import { paymentService } from "../services/paymentService";
 
 /**
  * WalletContext
@@ -8,22 +15,22 @@ import { walletService } from "../services/walletService";
  * Reads (balance, transaction history) are wired to the real backend and
  * confirmed working (GET /wallet, GET /wallet/transactions).
  *
- * Funding is NOT live yet — deliberately. Actually crediting a wallet
- * requires either:
- *   (a) a real Paystack flow — this account has no PAYSTACK_SECRET_KEY
- *       configured, and even once it is, their webhook can only just now
- *       reach the credit step after this session's backend patches; or
- *   (b) cash funding — no endpoint exists anywhere on their backend for
- *       this (see docs/BACKEND_CODE_REVIEW.md §2).
- * `deposit` below throws rather than silently pretending to work — no
- * more mock-only balance changes now that this reads real data, since a
- * fake local deposit would drift from what GET /wallet actually reports.
+ * Funding is now real. `deposit(amount)` calls the real
+ * POST /payments/initialize and redirects the browser to Paystack's own
+ * checkout page — there is no in-app "success" state to show here, since
+ * the tab navigates away entirely. See PaymentCallbackPage.jsx for what
+ * happens when the browser comes back.
  */
 
 const WalletContext = createContext(null);
 
 function normalizeTransaction(t) {
-  return { ...t, amount: Number(t.amount), balanceBefore: Number(t.balanceBefore), balanceAfter: Number(t.balanceAfter) };
+  return {
+    ...t,
+    amount: Number(t.amount),
+    balanceBefore: Number(t.balanceBefore),
+    balanceAfter: Number(t.balanceAfter),
+  };
 }
 
 export function WalletProvider({ children }) {
@@ -59,18 +66,20 @@ export function WalletProvider({ children }) {
     reload();
   }, [reload, user?.id]);
 
-  // Not implemented — see header note. Throws instead of silently faking
-  // a balance change, so calling code has to handle the real "not
-  // available yet" state rather than showing a number that isn't real.
-  const deposit = useCallback(() => {
-    throw new Error(
-      "Wallet funding isn't connected yet — Paystack keys aren't configured, and cash funding has no backend endpoint."
-    );
+  // Redirects the whole tab to Paystack's hosted checkout — there's
+  // nothing further for the caller to do once this resolves, since the
+  // browser navigates away before any "success" state could be shown
+  // here. PaymentCallbackPage handles what happens when it comes back.
+  const deposit = useCallback(async (amount, email) => {
+    const result = await paymentService.initialize(amount, email);
+    window.location.href = result.authorizationUrl;
   }, []);
 
   const value = { balance, transactions, isLoading, error, reload, deposit };
 
-  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+  return (
+    <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+  );
 }
 
 export function useWallet() {

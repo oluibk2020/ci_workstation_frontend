@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { dashboardPathForRole } from "../../utils/roleRouting";
@@ -15,19 +15,35 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
 
-  async function handleGoogleSuccess(idToken) {
-    setError("");
-    setGoogleSubmitting(true);
-    try {
-      const user = await loginWithGoogle(idToken);
-      const redirectTo = location.state?.from?.pathname || dashboardPathForRole(user.role);
-      navigate(redirectTo, { replace: true });
-    } catch (err) {
-      setError(err.message || "Couldn't sign you in with Google. Please try again.");
-    } finally {
-      setGoogleSubmitting(false);
-    }
-  }
+  // BUG FIX: these were plain functions/inline arrows before, meaning
+  // both got a brand-new reference on every render — including every
+  // single keystroke in the email/password fields, since those are
+  // controlled inputs. GoogleSignInButton's effect depends on both, so
+  // the Google button was re-initializing and re-rendering from scratch
+  // on every keystroke elsewhere on the page — a real, visible
+  // flicker/reset having nothing to do with Google's own button at all.
+  // useCallback keeps these stable across renders.
+  const handleGoogleSuccess = useCallback(
+    async (idToken) => {
+      setError("");
+      setGoogleSubmitting(true);
+      try {
+        const user = await loginWithGoogle(idToken);
+        const redirectTo =
+          location.state?.from?.pathname || dashboardPathForRole(user.role);
+        navigate(redirectTo, { replace: true });
+      } catch (err) {
+        setError(
+          err.message || "Couldn't sign you in with Google. Please try again.",
+        );
+      } finally {
+        setGoogleSubmitting(false);
+      }
+    },
+    [loginWithGoogle, location.state, navigate],
+  );
+
+  const handleGoogleError = useCallback((msg) => setError(msg), []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -35,7 +51,8 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const user = await login({ email, password });
-      const redirectTo = location.state?.from?.pathname || dashboardPathForRole(user.role);
+      const redirectTo =
+        location.state?.from?.pathname || dashboardPathForRole(user.role);
       navigate(redirectTo, { replace: true });
     } catch (err) {
       // Their error middleware is currently a stub — every failure,
@@ -46,7 +63,8 @@ export default function LoginPage() {
       setError(
         err?.isGenericServerError
           ? "Couldn't log you in. Double-check your email and password — the server doesn't yet return a specific reason for login failures."
-          : err.message || "Couldn't log you in. Check your details and try again."
+          : err.message ||
+              "Couldn't log you in. Check your details and try again.",
       );
     } finally {
       setSubmitting(false);
@@ -56,16 +74,22 @@ export default function LoginPage() {
   return (
     <>
       <h1 className="text-xl font-bold text-[var(--color-primary)]">Log in</h1>
-      <p className="mt-1 text-sm text-slate-500">Welcome back — book your next desk in a minute.</p>
+      <p className="mt-1 text-sm text-slate-500">
+        Welcome back — book your next desk in a minute.
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div className="flex justify-center">
           <GoogleSignInButton
             onSuccess={handleGoogleSuccess}
-            onError={(msg) => setError(msg)}
+            onError={handleGoogleError}
           />
         </div>
-        {googleSubmitting && <p className="text-center text-sm text-slate-400">Signing you in...</p>}
+        {googleSubmitting && (
+          <p className="text-center text-sm text-slate-400">
+            Signing you in...
+          </p>
+        )}
 
         <div className="flex items-center gap-3 text-xs text-slate-400">
           <div className="h-px flex-1 bg-[var(--color-line)]" />
@@ -86,8 +110,13 @@ export default function LoginPage() {
         </div>
         <div>
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-700">Password</label>
-            <Link to="/forgot-password" className="text-xs font-medium text-[var(--color-accent)] hover:underline">
+            <label className="text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <Link
+              to="/forgot-password"
+              className="text-xs font-medium text-[var(--color-accent)] hover:underline"
+            >
               Forgot password?
             </Link>
           </div>
@@ -110,7 +139,10 @@ export default function LoginPage() {
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Don't have an account?{" "}
-        <Link to="/register" className="font-medium text-[var(--color-accent)] hover:underline">
+        <Link
+          to="/register"
+          className="font-medium text-[var(--color-accent)] hover:underline"
+        >
           Create one
         </Link>
       </p>
