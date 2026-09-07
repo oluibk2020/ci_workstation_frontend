@@ -116,6 +116,8 @@ export const STATUS_STYLES = {
   SUCCESS: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
   FAILED: "bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
   INITIATED: "bg-[var(--color-warning)]/10 text-[var(--color-warning)]",
+  AVAILABLE_TODAY: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
+  BOOKED_TODAY: "bg-[var(--color-warning)]/10 text-[var(--color-warning)]",
 };
 
 // Payment model: clients pay per day booked, at the workstation's flat

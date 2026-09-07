@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Button from "../../components/common/Button";
 import GoogleSignInButton from "./GoogleSigninButton";
@@ -11,34 +12,50 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsViewed, setTermsViewed] = useState(false);
+  const termsBoxRef = useRef(null);
 
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
-  async function handleGoogleSuccess(idToken) {
-    setError("");
-    setGoogleSubmitting(true);
-    try {
-      // Google sign-in silently creates the account on first use — no
-      // separate "register" step exists or is needed for it.
-      await loginWithGoogle(idToken);
-      navigate("/client/dashboard", { replace: true });
-    } catch (err) {
-      setError(
-        err.message || "Couldn't sign you up with Google. Please try again.",
-      );
-    } finally {
-      setGoogleSubmitting(false);
-    }
-  }
+  // BUG FIX: same issue as LoginPage.jsx — a plain function and inline
+  // arrow both got a new reference on every render (every keystroke in
+  // the form), which re-triggered GoogleSignInButton's effect and
+  // re-initialized the Google button from scratch each time.
+  const handleGoogleSuccess = useCallback(
+    async (idToken) => {
+      setError("");
+      setGoogleSubmitting(true);
+      try {
+        // Google sign-in silently creates the account on first use — no
+        // separate "register" step exists or is needed for it.
+        if (!termsAccepted) {
+          setError("Please read and accept the Terms and Conditions before continuing.");
+          return;
+        }
+        await loginWithGoogle(idToken, true);
+        navigate("/client/dashboard", { replace: true });
+      } catch (err) {
+        setError(
+          err.message || "Couldn't sign you up with Google. Please try again.",
+        );
+      } finally {
+        setGoogleSubmitting(false);
+      }
+    },
+    [loginWithGoogle, navigate],
+  );
+
+  const handleGoogleError = useCallback((msg) => setError(msg), []);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
     try {
-      await register(form);
+      await register({ ...form, termsAccepted });
       navigate("/client/dashboard", { replace: true });
     } catch (err) {
       // Their error middleware is a stub (see docs/BACKEND_CODE_REVIEW.md
@@ -71,7 +88,7 @@ export default function RegisterPage() {
         <div className="flex justify-center">
           <GoogleSignInButton
             onSuccess={handleGoogleSuccess}
-            onError={(msg) => setError(msg)}
+            onError={handleGoogleError}
           />
         </div>
         {googleSubmitting && (
@@ -121,6 +138,28 @@ export default function RegisterPage() {
           />
         </div>
 
+        <div className="rounded-xl border border-[var(--color-line)] bg-slate-50 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-primary)]">Terms and Conditions</p>
+              <p className="text-xs text-slate-500">Please read the terms before creating your account.</p>
+            </div>
+            <Link to="/terms" target="_blank" onClick={() => setTermsViewed(true)} className="text-sm font-medium text-[var(--color-accent)] hover:underline">Open full terms</Link>
+          </div>
+          <div ref={termsBoxRef} onScroll={(e) => { if (e.currentTarget.scrollTop + e.currentTarget.clientHeight >= e.currentTarget.scrollHeight - 8) setTermsViewed(true); }} className="mt-3 max-h-44 overflow-y-auto rounded-lg border border-[var(--color-line)] bg-white p-3 text-xs leading-5 text-slate-600">
+            <p className="font-semibold text-slate-800">Workstation Terms — Summary</p>
+            <p className="mt-2">By using this service, you agree to provide accurate account information, keep your login credentials secure, follow our house rules, and use workstations responsibly.</p>
+            <p className="mt-2">Bookings are made for the selected date or date range. Bookings cannot be cancelled, but eligible bookings may be rescheduled subject to the 48-hour rescheduling rule and availability.</p>
+            <p className="mt-2">You are responsible for the person using a booking made for someone else and for presenting the applicable QR pass at check-in. We may suspend accounts for misuse, fraud, unsafe conduct, or violation of these terms.</p>
+            <p className="mt-2">Payments, wallet credits, refunds, privacy, liability, and dispute handling are governed by the full Terms and Conditions.</p>
+            <p className="mt-2 font-medium text-slate-800">Scroll to the end of this box to confirm you have read this summary, or open the full terms.</p>
+          </div>
+          <label className={`mt-3 flex items-start gap-3 text-sm ${termsViewed ? "text-slate-700" : "text-slate-400"}`}>
+            <input type="checkbox" className="mt-1 h-4 w-4" checked={termsAccepted} disabled={!termsViewed} onChange={(e) => setTermsAccepted(e.target.checked)} />
+            <span>I have read and agree to the Terms and Conditions.</span>
+          </label>
+        </div>
+
         <p className="rounded-lg bg-[var(--color-warning)]/10 p-3 text-xs text-amber-700">
           New accounts start as{" "}
           <span className="font-mono-tight font-semibold">UNVERIFIED</span>.
@@ -131,7 +170,7 @@ export default function RegisterPage() {
 
         {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
 
-        <Button type="submit" className="w-full" disabled={submitting}>
+        <Button type="submit" className="w-full" disabled={submitting || !termsAccepted}>
           {submitting ? "Creating account..." : "Create account"}
         </Button>
       </form>

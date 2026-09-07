@@ -18,7 +18,6 @@ export default function VerificationPage() {
   const { verificationStatus } = useAuth();
   const [documentType, setDocumentType] = useState(ID_DOCUMENT_TYPE.NATIONAL_ID);
   const [documentNumber, setDocumentNumber] = useState("");
-  const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -27,7 +26,6 @@ export default function VerificationPage() {
   async function handleFileChange(e) {
     const selected = e.target.files?.[0];
     if (!selected) return;
-    setFile(selected);
     const dataUri = await fileToDataUri(selected);
     setFilePreview(dataUri);
   }

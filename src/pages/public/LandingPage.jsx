@@ -212,7 +212,7 @@ export default function LandingPage() {
         <img
           src="/photos/sagamu-desks.jpg"
           alt="Partitioned desks with privacy dividers at the Sagamu branch"
-          className="mx-auto mt-8 aspect-[4/3] w-full max-w-3xl rounded-2xl object-cover sm:aspect-[16/9] sm:max-w-none"
+          className="mx-auto mt-8 aspect-[3/4] w-full max-w-sm rounded-2xl object-cover"
         />
 
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -310,6 +310,12 @@ export default function LandingPage() {
             Create your account
             <ArrowRight size={18} />
           </Button>
+          <Link
+            to="/house-rules"
+            className="text-sm text-slate-500 underline decoration-slate-300 underline-offset-4 hover:text-[var(--color-accent)]"
+          >
+            Read our house rules before your first visit
+          </Link>
         </div>
       </section>
     </>

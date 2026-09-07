@@ -3,6 +3,7 @@ import { Plus, Pencil, Loader2 } from "lucide-react";
 import { useCatalog } from "../../context/CatalogContext";
 import WorkstationFormModal from "../../components/workstation/WorkstationFormModal";
 import Button from "../../components/common/Button";
+import { WORKSTATION_STATUS } from "../../utils/constants";
 
 // Wired to the real backend. NOTE: no workstation delete route exists —
 // create, update, and status-update do. This page only offers those.
@@ -13,6 +14,7 @@ export default function AdminWorkstationsPage() {
     isLoading,
     addWorkstation,
     updateWorkstation,
+    updateWorkstationStatus,
     getBranchName,
     getSeatsForWorkstation,
   } = useCatalog();
@@ -23,11 +25,8 @@ export default function AdminWorkstationsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const filtered = useMemo(
-    () =>
-      branchFilter === "ALL"
-        ? workstations
-        : workstations.filter((wk) => wk.branchId === branchFilter),
-    [workstations, branchFilter],
+    () => (branchFilter === "ALL" ? workstations : workstations.filter((wk) => wk.branchId === branchFilter)),
+    [workstations, branchFilter]
   );
 
   function openCreate() {
@@ -59,18 +58,24 @@ export default function AdminWorkstationsPage() {
     }
   }
 
+  async function handleStatusChange(id, status) {
+    setError("");
+    try {
+      await updateWorkstationStatus(id, status);
+    } catch (err) {
+      setError(err.message || "Couldn't update status.");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-primary)]">
-            Workstation Types
-          </h1>
+          <h1 className="text-xl font-bold text-[var(--color-primary)]">Workstation Types</h1>
           <p className="text-sm text-slate-500">
-            A workstation is a type/category (e.g. "Standing Desk") that holds a
-            daily rate. Add individual bookable seats under each type on the
-            Seats page. Removing a type isn't available yet — the backend has no
-            delete route for it.
+            A workstation is a type/category (e.g. "Standing Desk") that holds a daily rate. Add
+            individual bookable seats under each type on the Seats page. Removing a type isn't
+            available yet — the backend has no delete route for it.
           </p>
         </div>
         <Button onClick={openCreate} disabled={branches.length === 0}>
@@ -95,9 +100,7 @@ export default function AdminWorkstationsPage() {
         <button
           onClick={() => setBranchFilter("ALL")}
           className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-            branchFilter === "ALL"
-              ? "bg-[var(--color-primary)] text-white"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            branchFilter === "ALL" ? "bg-[var(--color-primary)] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
           }`}
         >
           All branches
@@ -107,9 +110,7 @@ export default function AdminWorkstationsPage() {
             key={b.id}
             onClick={() => setBranchFilter(b.id)}
             className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              branchFilter === b.id
-                ? "bg-[var(--color-primary)] text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              branchFilter === b.id ? "bg-[var(--color-primary)] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
             {b.name}
@@ -130,23 +131,35 @@ export default function AdminWorkstationsPage() {
                 <th className="px-5 py-3">Branch</th>
                 <th className="px-5 py-3">Seats</th>
                 <th className="px-5 py-3 text-right">Daily rate</th>
+                <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-line)]">
               {filtered.map((wk) => (
                 <tr key={wk.id}>
-                  <td className="px-5 py-3 font-medium text-[var(--color-primary)]">
-                    {wk.name}
-                  </td>
-                  <td className="px-5 py-3 text-slate-500">
-                    {getBranchName(wk.branchId)}
-                  </td>
-                  <td className="px-5 py-3 text-slate-500">
-                    {getSeatsForWorkstation(wk.id).length}
-                  </td>
+                  <td className="px-5 py-3 font-medium text-[var(--color-primary)]">{wk.name}</td>
+                  <td className="px-5 py-3 text-slate-500">{getBranchName(wk.branchId)}</td>
+                  <td className="px-5 py-3 text-slate-500">{getSeatsForWorkstation(wk.id).length}</td>
                   <td className="px-5 py-3 text-right font-mono-tight font-semibold text-[var(--color-primary)]">
                     ₦{wk.pricePerDay.toLocaleString()}
+                  </td>
+                  <td className="px-5 py-3">
+                    <select
+                      value={wk.status || WORKSTATION_STATUS.ACTIVE}
+                      onChange={(e) => handleStatusChange(wk.id, e.target.value)}
+                      className={`rounded-full border-0 px-3 py-1 text-xs font-semibold font-mono-tight uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] ${
+                        wk.status === WORKSTATION_STATUS.INACTIVE
+                          ? "bg-slate-200 text-slate-600"
+                          : "bg-[var(--color-success)]/10 text-[var(--color-success)]"
+                      }`}
+                    >
+                      {Object.values(WORKSTATION_STATUS).map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex justify-end gap-1">
@@ -164,11 +177,7 @@ export default function AdminWorkstationsPage() {
             </tbody>
           </table>
 
-          {filtered.length === 0 && (
-            <p className="p-5 text-sm text-slate-400">
-              No workstation types yet.
-            </p>
-          )}
+          {filtered.length === 0 && <p className="p-5 text-sm text-slate-400">No workstation types yet.</p>}
         </div>
       )}
 

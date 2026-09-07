@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { authService } from "../services/authService";
 
 /**
@@ -8,6 +14,23 @@ import { authService } from "../services/authService";
  * Holds the current user, their role (USER/STAFF/SUPER_ADMIN — see
  * constants.js, values match the backend exactly), account status, and
  * verification status.
+ *
+ * DELIBERATE CHOICE — sessionStorage, not localStorage: requested
+ * directly, to test multiple roles side by side (e.g. Admin in one tab,
+ * Staff in another) without one login overwriting the other.
+ * localStorage is shared across every tab of the same browser for the
+ * same site — logging in as a second role in a new tab would silently
+ * hijack the first tab's session too, since they're both reading/writing
+ * the exact same stored value. sessionStorage is genuinely isolated per
+ * tab (per browsing context, more precisely), so each tab now keeps its
+ * own independent login.
+ *
+ * Real trade-off, not a free upgrade: a session no longer survives
+ * closing the tab/browser — sessionStorage is cleared when its tab
+ * closes, where localStorage persisted indefinitely ("stay logged in").
+ * For heavy multi-role testing this is normally the more useful default;
+ * reconsider before shipping to real end users if "stay logged in
+ * between visits" matters for them.
  *
  * KNOWN BACKEND QUIRK — worked around here, not fixed there:
  * their register controller has a variable-naming bug (see
@@ -22,8 +45,13 @@ const AuthContext = createContext(null);
 
 const STORAGE_KEY = "workstation.auth";
 
-function normalizeAuthResult(result, { fromRegister = false } = {}) {
-  const source = fromRegister ? result.user : result;
+function normalizeAuthResult(result) {
+  // Supports both the current register response ({ user: { user, token } })
+  // and the cleaner login/Google shape ({ user, token }).
+  const source = result?.user?.user && result?.user?.token ? result.user : result;
+  if (!source?.user || !source?.token) {
+    throw new Error("The server returned an invalid authentication response.");
+  }
   return {
     user: source.user,
     token: source.token,
@@ -38,7 +66,7 @@ export function AuthProvider({ children }) {
   // it against the backend (GET /auth/me) — clears it if the token is
   // invalid/expired rather than leaving a stale, wrong user in the UI.
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = sessionStorage.getItem(STORAGE_KEY);
     if (!stored) {
       setIsLoading(false);
       return;
@@ -49,7 +77,7 @@ export function AuthProvider({ children }) {
       cached = JSON.parse(stored);
       setUser(cached);
     } catch {
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
       setIsLoading(false);
       return;
     }
@@ -58,11 +86,11 @@ export function AuthProvider({ children }) {
       .me()
       .then(({ user: freshUser }) => {
         const merged = { ...cached, ...freshUser };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         setUser(merged);
       })
       .catch(() => {
-        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
         setUser(null);
       })
       .finally(() => setIsLoading(false));
@@ -72,7 +100,7 @@ export function AuthProvider({ children }) {
     const result = await authService.login({ email, password });
     const { user: loggedInUser, token } = normalizeAuthResult(result);
     const stored = { ...loggedInUser, token };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     setUser(stored);
     return stored;
   }, []);
@@ -82,27 +110,56 @@ export function AuthProvider({ children }) {
   // existing Google-linked account" and "silently register a brand new
   // one" — the backend decides which happened, the frontend doesn't need
   // to know or care.
-  const loginWithGoogle = useCallback(async (idToken) => {
-    const result = await authService.googleLogin(idToken);
+  const loginWithGoogle = useCallback(async (idToken, termsAccepted = false) => {
+    const result = await authService.googleLogin(idToken, termsAccepted);
     const { user: loggedInUser, token } = normalizeAuthResult(result);
     const stored = { ...loggedInUser, token };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     setUser(stored);
     return stored;
   }, []);
 
-  const register = useCallback(async ({ name, email, password }) => {
-    const result = await authService.register({ name, email, password });
-    const { user: newUser, token } = normalizeAuthResult(result, { fromRegister: true });
+  const register = useCallback(async ({ name, email, password, termsAccepted }) => {
+    const result = await authService.register({ name, email, password, termsAccepted });
+    const { user: newUser, token } = normalizeAuthResult(result);
     const stored = { ...newUser, token };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     setUser(stored);
     return stored;
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
     setUser(null);
+  }, []);
+
+  // BUG FIX: role/status were only ever re-validated against the server
+  // once, on initial page load. If an Admin changed someone's role or
+  // banned them while that person already had the app open in a tab,
+  // nothing re-checked it — ProtectedRoute kept trusting the stale
+  // cached role indefinitely, until the next full page refresh. The
+  // backend itself was already fixed to re-check on every API request
+  // (see authMiddleware.js), so no real data/action was ever actually
+  // exposed — but the frontend UI (sidebar, route access) could stay
+  // wrong-looking for an open session. ProtectedRoute now calls this on
+  // every protected-route entry to close that window.
+  const refreshUser = useCallback(async () => {
+    try {
+      const { user: freshUser } = await authService.me();
+      setUser((prev) => {
+        if (!prev) return prev;
+        const merged = { ...prev, ...freshUser };
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        return merged;
+      });
+      return freshUser;
+    } catch {
+      // Token invalid/expired/account gone — same handling as the
+      // initial-load check above.
+      sessionStorage.removeItem(STORAGE_KEY);
+      setUser(null);
+      return null;
+    }
   }, []);
 
   // Merges fresh fields (e.g. after PATCH /auth/me, or a re-fetch of
@@ -111,7 +168,7 @@ export function AuthProvider({ children }) {
     setUser((prev) => {
       if (!prev) return prev;
       const merged = { ...prev, ...patch };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       return merged;
     });
   }, []);
@@ -128,6 +185,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     updateUser,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

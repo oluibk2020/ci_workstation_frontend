@@ -17,10 +17,32 @@ import { useEffect, useRef, useState } from "react";
  * onSuccess receives the raw Google ID token (a JWT) — pass it straight
  * to authService.googleLogin / AuthContext's loginWithGoogle, which sends
  * it to POST /auth/google for the backend to verify and act on.
+ *
+ * BUG FIX ("google login is not very easy" — the button was flickering/
+ * re-rendering constantly): LoginPage.jsx and RegisterPage.jsx were both
+ * passing onSuccess/onError as a plain function and an inline arrow —
+ * each gets a brand-new reference on every render, including every
+ * keystroke in the email/password fields elsewhere on the same page.
+ * Since this component's setup effect depended on both props directly,
+ * the entire Google button was re-initializing from scratch on every
+ * keystroke. Fixed at both call sites with useCallback — but ALSO made
+ * defensive here, so the same mistake by a future caller can't cause it
+ * again: the latest onSuccess/onError are kept in a ref, updated every
+ * render without triggering anything, while the actual Google SDK setup
+ * effect below depends only on `clientId` (which never changes) — so
+ * initialization now happens essentially once, no matter how the props
+ * are passed in.
  */
 export default function GoogleSignInButton({ onSuccess, onError }) {
   const buttonRef = useRef(null);
   const [notConfigured, setNotConfigured] = useState(false);
+
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -40,9 +62,9 @@ export default function GoogleSignInButton({ onSuccess, onError }) {
         client_id: clientId,
         callback: (response) => {
           if (response?.credential) {
-            onSuccess(response.credential);
+            onSuccessRef.current?.(response.credential);
           } else {
-            onError?.("Google didn't return a valid credential.");
+            onErrorRef.current?.("Google didn't return a valid credential.");
           }
         },
       });
@@ -74,7 +96,9 @@ export default function GoogleSignInButton({ onSuccess, onError }) {
     return () => {
       cancelled = true;
     };
-  }, [onSuccess, onError]);
+    // Deliberately NOT depending on onSuccess/onError — see header note.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (notConfigured) {
     return (

@@ -9,6 +9,17 @@ import { seatService } from "../services/seatService";
  * --------------
  * Wired to the real backend (docs/PATCH_NOTES.md — confirmed running).
  *
+ * BUG FIX: Super Admin now fetches workstations/seats via the "admin, all
+ * statuses" endpoints (workstationService.listAllByBranchAdmin,
+ * seatService.listAllByWorkstationAdmin) instead of the public
+ * ACTIVE-only ones. Previously, the only listing endpoints that existed
+ * at all hardcoded status: "ACTIVE" — meaning the moment a Super Admin
+ * set something INACTIVE, it became permanently unreachable through the
+ * only endpoint that could ever return it again, with no way to find it
+ * to reactivate. Everyone else (regular clients, logged out visitors)
+ * keeps using the original ACTIVE-only endpoints, unchanged — they should
+ * never see inactive items at all.
+ *
  * IMPORTANT CORRECTION to an earlier assumption here: seat endpoints are
  * NOT public. `routes/seatRoute.js` applies `auth` to both
  * GET /seats/workstation/:workstationId and GET /seats/:seatId — only
@@ -36,7 +47,8 @@ import { seatService } from "../services/seatService";
 const CatalogContext = createContext(null);
 
 export function CatalogProvider({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, role } = useAuth();
+  const isSuperAdmin = role === "SUPER_ADMIN";
   const [branches, setBranches] = useState([]);
   const [workstations, setWorkstations] = useState([]);
   const [seats, setSeats] = useState([]);
@@ -44,8 +56,9 @@ export function CatalogProvider({ children }) {
   const [error, setError] = useState("");
   const [seatsRequireAuth, setSeatsRequireAuth] = useState(false);
 
-  // Branches + Workstations: genuinely public, loaded once regardless of
-  // auth state.
+  // Branches + Workstations. Branches are genuinely public. Workstations:
+  // Super Admin sees every status (see header note); everyone else only
+  // ever sees ACTIVE ones, matching the original, correct public behavior.
   const loadPublicCatalog = useCallback(async () => {
     setIsLoading(true);
     setError("");
@@ -54,7 +67,11 @@ export function CatalogProvider({ children }) {
       setBranches(branchList);
 
       const workstationLists = await Promise.all(
-        branchList.map((b) => workstationService.listByBranch(b.id).then((r) => r.workstations))
+        branchList.map((b) =>
+          (isSuperAdmin ? workstationService.listAllByBranchAdmin(b.id) : workstationService.listByBranch(b.id)).then(
+            (r) => r.workstations
+          )
+        )
       );
       // Prisma serializes Decimal fields (pricePerDay) as strings over
       // JSON — normalize to Number once here so every consumer downstream
@@ -66,10 +83,11 @@ export function CatalogProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isSuperAdmin]);
 
   // Seats: requires auth on the real backend. Only attempted while logged
-  // in; re-runs automatically when auth state changes (e.g. login).
+  // in; re-runs automatically when auth state (or role) changes. Super
+  // Admin sees every status; everyone else only ACTIVE ones.
   const loadSeats = useCallback(async (workstationList) => {
     if (!isAuthenticated || workstationList.length === 0) {
       setSeats([]);
@@ -79,7 +97,11 @@ export function CatalogProvider({ children }) {
     setSeatsRequireAuth(false);
     try {
       const seatLists = await Promise.all(
-        workstationList.map((wk) => seatService.listByWorkstation(wk.id).then((r) => r.seats))
+        workstationList.map((wk) =>
+          (isSuperAdmin ? seatService.listAllByWorkstationAdmin(wk.id) : seatService.listByWorkstation(wk.id)).then(
+            (r) => r.seats
+          )
+        )
       );
       setSeats(seatLists.flat());
     } catch (err) {
@@ -88,7 +110,7 @@ export function CatalogProvider({ children }) {
       console.error("Couldn't load seats:", err.message);
       setSeats([]);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isSuperAdmin]);
 
   useEffect(() => {
     loadPublicCatalog();
@@ -97,7 +119,7 @@ export function CatalogProvider({ children }) {
   useEffect(() => {
     loadSeats(workstations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, workstations.length]);
+  }, [isAuthenticated, isSuperAdmin, workstations.length]);
 
   const reload = useCallback(async () => {
     await loadPublicCatalog();
@@ -121,6 +143,16 @@ export function CatalogProvider({ children }) {
 
   const updateWorkstation = useCallback(async (id, data) => {
     const { workstation } = await workstationService.update(id, data);
+    const normalized = { ...workstation, pricePerDay: Number(workstation.pricePerDay) };
+    setWorkstations((prev) => prev.map((wk) => (wk.id === id ? { ...wk, ...normalized } : wk)));
+    return normalized;
+  }, []);
+
+  // NEW — AdminWorkstationsPage previously had no way to set a
+  // workstation type INACTIVE at all, even though the backend has always
+  // supported it. Mirrors updateSeatStatus below.
+  const updateWorkstationStatus = useCallback(async (id, status) => {
+    const { workstation } = await workstationService.updateStatus(id, status);
     const normalized = { ...workstation, pricePerDay: Number(workstation.pricePerDay) };
     setWorkstations((prev) => prev.map((wk) => (wk.id === id ? { ...wk, ...normalized } : wk)));
     return normalized;
@@ -181,6 +213,7 @@ export function CatalogProvider({ children }) {
     addBranch,
     addWorkstation,
     updateWorkstation,
+    updateWorkstationStatus,
     addSeat,
     updateSeat,
     updateSeatStatus,

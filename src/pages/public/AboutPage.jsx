@@ -33,7 +33,7 @@ export default function AboutPage() {
           <img
             src="/photos/sagamu-desks.jpg"
             alt="Partitioned desks with privacy dividers at the Sagamu branch"
-            className="aspect-[4/3] w-full rounded-xl object-cover"
+            className="aspect-[4/3] w-full rounded-xl object-cover object-bottom"
           />
           <img
             src="/photos/sagamu-presentation-room.jpg"

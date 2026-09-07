@@ -87,6 +87,19 @@ export const bookingService = {
   // Staff/Super Admin only — new backend endpoint, see docs/PATCH_NOTES.md.
   getTodaysBookings: (branchId) => apiFetch(`/bookings/today?${new URLSearchParams({ branchId })}`),
 
+  // Staff/Super Admin only — "All users that booked should be seen".
+  // Unlike getTodaysBookings (one branch, today only), this covers every
+  // booking, across all users and branches, all time — paginated.
+  getAllBookingsAdmin: ({ page, limit, status, branchId } = {}) => {
+    const params = new URLSearchParams({
+      ...(page && { page }),
+      ...(limit && { limit }),
+      ...(status && { status }),
+      ...(branchId && { branchId }),
+    }).toString();
+    return apiFetch(`/bookings/admin/all${params ? `?${params}` : ""}`);
+  },
+
   // Super Admin only — history log, not a "requests" queue (reassignment
   // is self-service in this system, there's no approval step).
   getReassignmentHistory: ({ page, limit } = {}) => {
