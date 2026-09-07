@@ -110,7 +110,10 @@ export default function App() {
             element={<ReassignmentHistoryPage />}
           />
           <Route path="/staff/seats" element={<StaffSeatsPage />} />
-          <Route path="/staff/notifications" element={<NotificationBroadcastPage />} />
+          <Route
+            path="/staff/notifications"
+            element={<NotificationBroadcastPage />}
+          />
         </Route>
       </Route>
 
@@ -118,6 +121,7 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/admin/checkin" element={<StaffScanPage />} />
           <Route path="/admin/clients" element={<AdminClientsPage />} />
           <Route
             path="/admin/verifications"
@@ -142,7 +146,10 @@ export default function App() {
           <Route path="/admin/staff" element={<StaffPage />} />
           <Route path="/admin/settings" element={<SettingsPage />} />
           <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
-          <Route path="/admin/notifications" element={<NotificationBroadcastPage />} />
+          <Route
+            path="/admin/notifications"
+            element={<NotificationBroadcastPage />}
+          />
           <Route path="/admin/email-users" element={<EmailBroadcastPage />} />
         </Route>
       </Route>

@@ -1,16 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { Clock } from "lucide-react";
-import { bookingService } from "../../services/bookingService";
+import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { checkinService } from "../../services/checkinService";
 import Badge from "../../components/common/Badge";
 
-/**
- * Deliberately not a new backend endpoint — GET /bookings already returns
- * each date's nested `checkIn` record. A "session" here is just a
- * BookingDate that has one, flattened across every booking and sorted
- * newest first.
- */
 export default function MySessionsPage() {
   const [sessions, setSessions] = useState([]);
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -18,35 +15,24 @@ export default function MySessionsPage() {
     setLoading(true);
     setError("");
     try {
-      const result = await bookingService.list();
-      const bookings = result.bookings || [];
-      const flattened = bookings
-        .flatMap((booking) =>
-          (booking.dates || [])
-            .filter((d) => d.checkIn)
-            .map((d) => ({
-              id: d.checkIn.id,
-              date: d.bookingDate,
-              status: d.checkIn.status,
-              checkedInAt: d.checkIn.checkedInAt,
-              checkedOutAt: d.checkIn.checkedOutAt,
-              workstation: booking.workstation,
-              branch: booking.branch,
-              seat: booking.seat,
-            })),
-        )
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-      setSessions(flattened);
+      const result = await checkinService.list({ page, limit: 20, status });
+      setSessions(result.checkIns || []);
+      setPagination(result.pagination || null);
     } catch (err) {
       setError(err.message || "Couldn't load your sessions.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, status]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  function handleStatusChange(event) {
+    setStatus(event.target.value);
+    setPage(1);
+  }
 
   function formatDuration(checkedInAt, checkedOutAt) {
     if (!checkedOutAt) return "In progress";
@@ -62,9 +48,21 @@ export default function MySessionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-[var(--color-primary)]">
-          My Sessions
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-bold text-[var(--color-primary)]">
+            My Sessions
+          </h1>
+          <select
+            value={status}
+            onChange={handleStatusChange}
+            aria-label="Filter sessions by status"
+            className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-primary)] focus:border-[var(--color-accent)] focus:outline-none"
+          >
+            <option value="">All statuses</option>
+            <option value="CHECKED_IN">Checked in</option>
+            <option value="CHECKED_OUT">Checked out</option>
+          </select>
+        </div>
         <p className="text-sm text-slate-500">
           Every past and active check-in, across all your bookings.
         </p>
@@ -82,33 +80,64 @@ export default function MySessionsPage() {
       )}
 
       <div className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white">
-        {sessions.map((s) => (
+        {sessions.map((session) => (
           <div
-            key={s.id}
+            key={session.id}
             className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-line)] p-4 last:border-b-0"
           >
             <div>
               <p className="font-medium text-[var(--color-primary)]">
-                {s.workstation?.name} — Seat {s.seat?.seatId}
+                {session.bookingDate?.booking?.workstation?.name ||
+                  "Workstation"}
               </p>
               <p className="text-xs text-slate-400">
-                {s.branch?.name} ·{" "}
-                {new Date(s.date).toLocaleDateString(undefined, {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                })}
+                {new Date(session.bookingDate?.bookingDate).toLocaleDateString(
+                  undefined,
+                  {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  },
+                )}
               </p>
             </div>
             <div className="flex items-center gap-3">
               <span className="font-mono-tight text-xs text-slate-500">
-                {formatDuration(s.checkedInAt, s.checkedOutAt)}
+                {formatDuration(session.checkedInAt, session.checkedOutAt)}
               </span>
-              <Badge status={s.status} />
+              <Badge status={session.status} />
             </div>
           </div>
         ))}
       </div>
+
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-slate-500">
+          <span>
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label="Previous page"
+              onClick={() => setPage((currentPage) => currentPage - 1)}
+              disabled={!pagination.hasPreviousPage || loading}
+              className="rounded-lg border border-[var(--color-line)] p-2 text-[var(--color-primary)] disabled:opacity-40"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              aria-label="Next page"
+              onClick={() => setPage((currentPage) => currentPage + 1)}
+              disabled={!pagination.hasNextPage || loading}
+              className="rounded-lg border border-[var(--color-line)] p-2 text-[var(--color-primary)] disabled:opacity-40"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -26,6 +26,14 @@ import { apiFetch } from "./api";
  * all.
  */
 export const checkinService = {
+  list: ({ page, limit, status } = {}) => {
+    const params = new URLSearchParams({
+      ...(page && { page }),
+      ...(limit && { limit }),
+      ...(status && { status }),
+    }).toString();
+    return apiFetch(`/checkin${params ? `?${params}` : ""}`);
+  },
   checkIn: async (bookingDateId, targetUserId) => {
     const result = await apiFetch("/checkin", {
       method: "POST",
@@ -34,7 +42,9 @@ export const checkinService = {
     return result.checkIn;
   },
   checkOut: async (checkInId) => {
-    const result = await apiFetch(`/checkin/${checkInId}/checkout`, { method: "PATCH" });
+    const result = await apiFetch(`/checkin/${checkInId}/checkout`, {
+      method: "PATCH",
+    });
     return result.checkIn;
   },
 };

@@ -42,7 +42,7 @@ export const NAV_CONFIG = {
   ],
   [ROLES.MANAGER]: [
     { to: "/staff/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/staff/scan", label: "Scan QR", icon: QrCode },
+    { to: "/staff/scan", label: "Check In User", icon: QrCode },
     {
       to: "/staff/verifications",
       label: "Verification Requests",
@@ -59,6 +59,7 @@ export const NAV_CONFIG = {
   ],
   [ROLES.ADMIN]: [
     { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/admin/checkin", label: "Check In User", icon: QrCode },
     { to: "/admin/clients", label: "Clients", icon: Users },
     {
       to: "/admin/verifications",

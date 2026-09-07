@@ -48,7 +48,10 @@ export default function StaffScanPage() {
     setActionLoading(true);
     setActionError("");
     try {
-      const result = await checkinService.checkIn(resolved.currentBooking.bookingDateId, resolved.user.id);
+      const result = await checkinService.checkIn(
+        resolved.currentBooking.bookingDateId,
+        resolved.user.id,
+      );
       setActionResult(result);
     } catch (err) {
       setActionError(err.message || "Couldn't check in right now.");
@@ -57,17 +60,36 @@ export default function StaffScanPage() {
     }
   }
 
+  async function handleCheckOut() {
+    if (!actionResult?.id) return;
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const result = await checkinService.checkOut(actionResult.id);
+      setActionResult(result);
+    } catch (err) {
+      setActionError(err.message || "Couldn't check out right now.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-[var(--color-primary)]">Scan QR</h1>
+        <h1 className="text-xl font-bold text-[var(--color-primary)]">
+          Scan QR
+        </h1>
         <p className="text-sm text-slate-500">
-          Normally a scan opens directly on the client's phone. Use this if that's not practical —
-          paste the QR token or the full link instead.
+          Normally a scan opens directly on the client's phone. Use this if
+          that's not practical — paste the QR token or the full link instead.
         </p>
       </div>
 
-      <form onSubmit={handleLookup} className="flex gap-2 rounded-2xl border border-[var(--color-line)] bg-white p-4">
+      <form
+        onSubmit={handleLookup}
+        className="flex gap-2 rounded-2xl border border-[var(--color-line)] bg-white p-4"
+      >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -75,7 +97,11 @@ export default function StaffScanPage() {
           className="w-full rounded-lg border border-[var(--color-line)] px-3 py-2.5 text-sm focus:border-[var(--color-accent)] focus:outline-none"
         />
         <Button type="submit" disabled={loading || !input.trim()}>
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />}
+          {loading ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <QrCode size={16} />
+          )}
           Look up
         </Button>
       </form>
@@ -91,16 +117,21 @@ export default function StaffScanPage() {
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--color-primary)] text-base font-semibold text-white">
             {resolved.user.name?.[0]?.toUpperCase() || "?"}
           </div>
-          <p className="mt-3 font-bold text-[var(--color-primary)]">{resolved.user.name}</p>
+          <p className="mt-3 font-bold text-[var(--color-primary)]">
+            {resolved.user.name}
+          </p>
           <div className="mt-1.5 flex justify-center">
-            <Badge status={resolved.user.verificationStatus}>{resolved.user.verificationStatus}</Badge>
+            <Badge status={resolved.user.verificationStatus}>
+              {resolved.user.verificationStatus}
+            </Badge>
           </div>
 
           <div className="mt-4 border-t border-[var(--color-line)] pt-4 text-left text-sm text-slate-600">
             {resolved.currentBooking ? (
               <>
                 <p className="font-medium text-[var(--color-primary)]">
-                  {resolved.currentBooking.workstation.name} — {resolved.currentBooking.branch.name}
+                  {resolved.currentBooking.workstation.name} —{" "}
+                  {resolved.currentBooking.branch.name}
                 </p>
                 <p>Seat {resolved.currentBooking.seat.seatId}</p>
               </>
@@ -109,17 +140,40 @@ export default function StaffScanPage() {
             )}
           </div>
 
-          {actionError && <p className="mt-3 text-sm text-[var(--color-danger)]">{actionError}</p>}
+          {actionError && (
+            <p className="mt-3 text-sm text-[var(--color-danger)]">
+              {actionError}
+            </p>
+          )}
 
           {resolved.currentBooking && (
             <div className="mt-4 border-t border-[var(--color-line)] pt-4">
-              {actionResult ? (
+              {actionResult?.status === "CHECKED_IN" ? (
+                <>
+                  <p className="mb-3 flex items-center justify-center gap-1.5 text-sm text-[var(--color-success)]">
+                    <CheckCircle2 size={16} />
+                    Checked in
+                  </p>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={handleCheckOut}
+                    disabled={actionLoading}
+                  >
+                    {actionLoading ? "Checking out..." : "Check out"}
+                  </Button>
+                </>
+              ) : actionResult ? (
                 <p className="flex items-center justify-center gap-1.5 text-sm text-[var(--color-success)]">
                   <CheckCircle2 size={16} />
-                  Checked in
+                  Checked out
                 </p>
               ) : (
-                <Button className="w-full" onClick={handleCheckIn} disabled={actionLoading}>
+                <Button
+                  className="w-full"
+                  onClick={handleCheckIn}
+                  disabled={actionLoading}
+                >
                   {actionLoading ? "Checking in..." : "Check in"}
                 </Button>
               )}
