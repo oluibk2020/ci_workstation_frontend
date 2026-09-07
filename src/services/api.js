@@ -25,6 +25,8 @@
 
 // Backend confirmed running on port 1524 locally (docs/PATCH_NOTES.md).
 // It already versions its API under /api/v1 itself.
+import { loadingManager } from "../utils/loadingManager";
+
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:1524/api/v1";
 
@@ -48,55 +50,56 @@ export async function apiFetch(
   { method = "GET", body, headers = {} } = {},
 ) {
   const token = getToken();
+  loadingManager.start();
 
-  let response;
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...headers,
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  } catch (networkError) {
-    const err = new Error(
-      "Unable to reach the Workstation server. Check your connection or try again.",
-    );
-    err.cause = networkError;
-    err.status = 0;
-    throw err;
-  }
-
-  const isJson = response.headers
-    .get("content-type")
-    ?.includes("application/json");
-  let envelope = null;
-  if (isJson) {
+    let response;
     try {
-      envelope = await response.json();
-    } catch {
-      throw new Error("The server returned an invalid response.");
+      response = await fetch(`${BASE_URL}${path}`, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...headers,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (networkError) {
+      const err = new Error(
+        "Unable to reach the Workstation server. Check your connection or try again.",
+      );
+      err.cause = networkError;
+      err.status = 0;
+      throw err;
     }
-  }
 
-  if (!response.ok || envelope?.success === false) {
-    const err = new Error(
-      envelope?.message ||
-        envelope?.error ||
-        `Request failed with status ${response.status}`,
-    );
-    err.code = envelope?.code; // documented codes — INSUFFICIENT_BALANCE, SEAT_UNAVAILABLE, etc.
-    err.status = response.status;
-    // True whenever this was their generic error-middleware stub (no
-    // code, no proper `.message` — only the `.error` fallback text) hit
-    // rather than a real, documented business-rule error.
-    err.isGenericServerError =
-      response.status === 500 && !envelope?.code && !envelope?.message;
-    throw err;
-  }
+    const isJson = response.headers
+      .get("content-type")
+      ?.includes("application/json");
+    let envelope = null;
+    if (isJson) {
+      try {
+        envelope = await response.json();
+      } catch {
+        throw new Error("The server returned an invalid response.");
+      }
+    }
 
-  // Unwrap the envelope so callers work with the payload directly.
-  return envelope?.data ?? envelope;
+    if (!response.ok || envelope?.success === false) {
+      const err = new Error(
+        envelope?.message ||
+          envelope?.error ||
+          `Request failed with status ${response.status}`,
+      );
+      err.code = envelope?.code;
+      err.status = response.status;
+      err.isGenericServerError =
+        response.status === 500 && !envelope?.code && !envelope?.message;
+      throw err;
+    }
+
+    return envelope?.data ?? envelope;
+  } finally {
+    loadingManager.stop();
+  }
 }
