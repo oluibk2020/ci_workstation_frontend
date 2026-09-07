@@ -45,8 +45,13 @@ const AuthContext = createContext(null);
 
 const STORAGE_KEY = "workstation.auth";
 
-function normalizeAuthResult(result, { fromRegister = false } = {}) {
-  const source = fromRegister ? result.user : result;
+function normalizeAuthResult(result) {
+  // Supports both the current register response ({ user: { user, token } })
+  // and the cleaner login/Google shape ({ user, token }).
+  const source = result?.user?.user && result?.user?.token ? result.user : result;
+  if (!source?.user || !source?.token) {
+    throw new Error("The server returned an invalid authentication response.");
+  }
   return {
     user: source.user,
     token: source.token,
@@ -105,8 +110,8 @@ export function AuthProvider({ children }) {
   // existing Google-linked account" and "silently register a brand new
   // one" — the backend decides which happened, the frontend doesn't need
   // to know or care.
-  const loginWithGoogle = useCallback(async (idToken) => {
-    const result = await authService.googleLogin(idToken);
+  const loginWithGoogle = useCallback(async (idToken, termsAccepted = false) => {
+    const result = await authService.googleLogin(idToken, termsAccepted);
     const { user: loggedInUser, token } = normalizeAuthResult(result);
     const stored = { ...loggedInUser, token };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
@@ -114,11 +119,9 @@ export function AuthProvider({ children }) {
     return stored;
   }, []);
 
-  const register = useCallback(async ({ name, email, password }) => {
-    const result = await authService.register({ name, email, password });
-    const { user: newUser, token } = normalizeAuthResult(result, {
-      fromRegister: true,
-    });
+  const register = useCallback(async ({ name, email, password, termsAccepted }) => {
+    const result = await authService.register({ name, email, password, termsAccepted });
+    const { user: newUser, token } = normalizeAuthResult(result);
     const stored = { ...newUser, token };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     setUser(stored);

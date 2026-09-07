@@ -3,6 +3,8 @@ import { apiFetch } from "./api";
 // Confirmed real endpoints, fully implemented and correctly wired
 // (req.user.id bug already fixed — see docs/PATCH_NOTES.md).
 export const notificationService = {
+  broadcast: ({ title, message }) =>
+    apiFetch("/notifications/broadcast", { method: "POST", body: { title, message } }),
   list: ({ unreadOnly, page, limit } = {}) =>
     apiFetch(
       `/notifications?${new URLSearchParams({

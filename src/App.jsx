@@ -13,6 +13,7 @@ import PricingPage from "./pages/public/PricingPage";
 import HowItWorksPage from "./pages/public/HowItWorksPage";
 import ContactPage from "./pages/public/ContactPage";
 import HouseRulesPage from "./pages/public/HouseRulesPage";
+import TermsPage from "./pages/public/TermsPage";
 
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -47,6 +48,7 @@ import AdminClientsPage from "./pages/admin/AdminClientsPage";
 import AdminBranchesPage from "./pages/admin/AdminBranchesPage";
 import AdminWorkstationsPage from "./pages/admin/AdminWorkstationsPage";
 import AdminSeatsPage from "./pages/admin/AdminSeatsPage";
+import NotificationBroadcastPage from "./pages/admin/NotificationBroadcastPage";
 
 import { ROLES } from "./utils/constants";
 
@@ -63,6 +65,7 @@ export default function App() {
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/house-rules" element={<HouseRulesPage />} />
+        <Route path="/terms" element={<TermsPage />} />
       </Route>
 
       {/* ---------- Authentication (docs Section 6) ---------- */}
@@ -106,6 +109,7 @@ export default function App() {
             element={<ReassignmentHistoryPage />}
           />
           <Route path="/staff/seats" element={<StaffSeatsPage />} />
+          <Route path="/staff/notifications" element={<NotificationBroadcastPage />} />
         </Route>
       </Route>
 
@@ -137,6 +141,7 @@ export default function App() {
           <Route path="/admin/staff" element={<StaffPage />} />
           <Route path="/admin/settings" element={<SettingsPage />} />
           <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
+          <Route path="/admin/notifications" element={<NotificationBroadcastPage />} />
         </Route>
       </Route>
 

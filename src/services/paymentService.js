@@ -1,8 +1,8 @@
 import { apiFetch } from "./api";
 
 /**
- * Not yet called anywhere — Phase 4 payment integration hasn't been
- * wired up (WalletContext's `deposit` is still mocked). This is the real
+ * Real Paystack funding flow used by WalletContext and PaymentCallbackPage.
+ *
  * flow, confirmed directly from their controllers/services:
  *
  *   1. initialize(amount) → returns a Paystack authorization_url; redirect

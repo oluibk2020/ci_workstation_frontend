@@ -49,20 +49,37 @@ export async function apiFetch(
 ) {
   const token = getToken();
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (networkError) {
+    const err = new Error(
+      "Unable to reach the Workstation server. Check your connection or try again.",
+    );
+    err.cause = networkError;
+    err.status = 0;
+    throw err;
+  }
 
   const isJson = response.headers
     .get("content-type")
     ?.includes("application/json");
-  const envelope = isJson ? await response.json() : null;
+  let envelope = null;
+  if (isJson) {
+    try {
+      envelope = await response.json();
+    } catch {
+      throw new Error("The server returned an invalid response.");
+    }
+  }
 
   if (!response.ok || envelope?.success === false) {
     const err = new Error(

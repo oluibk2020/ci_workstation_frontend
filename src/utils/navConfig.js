@@ -54,6 +54,7 @@ export const NAV_CONFIG = {
       icon: RefreshCcw,
     },
     { to: "/staff/seats", label: "Seats", icon: Armchair },
+    { to: "/staff/notifications", label: "Send Notifications", icon: Bell },
   ],
   [ROLES.ADMIN]: [
     { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -85,6 +86,7 @@ export const NAV_CONFIG = {
     { to: "/admin/staff", label: "Staff", icon: UserCog },
     { to: "/admin/settings", label: "Settings", icon: Settings },
     { to: "/admin/audit-logs", label: "Audit Logs", icon: FileClock },
+    { to: "/admin/notifications", label: "Send Notifications", icon: Bell },
   ],
 };
 
