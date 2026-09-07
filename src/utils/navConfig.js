@@ -6,6 +6,7 @@ import {
   Clock,
   Receipt,
   Bell,
+  Mail,
   User,
   Wallet,
   QrCode,
@@ -87,6 +88,7 @@ export const NAV_CONFIG = {
     { to: "/admin/settings", label: "Settings", icon: Settings },
     { to: "/admin/audit-logs", label: "Audit Logs", icon: FileClock },
     { to: "/admin/notifications", label: "Send Notifications", icon: Bell },
+    { to: "/admin/email-users", label: "Email Users", icon: Mail },
   ],
 };
 

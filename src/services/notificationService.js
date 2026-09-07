@@ -5,6 +5,8 @@ import { apiFetch } from "./api";
 export const notificationService = {
   broadcast: ({ title, message }) =>
     apiFetch("/notifications/broadcast", { method: "POST", body: { title, message } }),
+  broadcastEmail: ({ subject, message }) =>
+    apiFetch("/notifications/email-broadcast", { method: "POST", body: { subject, message } }),
   list: ({ unreadOnly, page, limit } = {}) =>
     apiFetch(
       `/notifications?${new URLSearchParams({

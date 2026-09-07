@@ -49,6 +49,7 @@ import AdminBranchesPage from "./pages/admin/AdminBranchesPage";
 import AdminWorkstationsPage from "./pages/admin/AdminWorkstationsPage";
 import AdminSeatsPage from "./pages/admin/AdminSeatsPage";
 import NotificationBroadcastPage from "./pages/admin/NotificationBroadcastPage";
+import EmailBroadcastPage from "./pages/admin/EmailBroadcastPage";
 
 import { ROLES } from "./utils/constants";
 
@@ -142,6 +143,7 @@ export default function App() {
           <Route path="/admin/settings" element={<SettingsPage />} />
           <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
           <Route path="/admin/notifications" element={<NotificationBroadcastPage />} />
+          <Route path="/admin/email-users" element={<EmailBroadcastPage />} />
         </Route>
       </Route>
 
